@@ -1,7 +1,7 @@
-from utils.data_loader import read_data
-from utils.evaluation_n_metrics import evaluate
-from utils.prep_sub import write_csv
-from utils.preproc_n_split import preproc_n_split
+from Utils.data_loader import read_data
+from Utils.evaluation_n_metrics import evaluate
+from Utils.prep_sub import write_csv
+from Utils.preproc_n_split import preproc_n_split
 
 import numpy as np
 import scipy.sparse as sp
@@ -23,35 +23,17 @@ iai, num_users, num_items, urm_train, urm_validation, urm_test = preproc_n_split
 
 # ##############################################	recommender part	 ############################################# #
 
+from Recommenders.NonPersonalizedRecommender import TopPop
 
-class CFItemKNN(object):
-	def __init__(self, shrink: int):
-		self.shrink = shrink
-		self.weights = None
+recommender = TopPop(urm_train)
 
-	def fit(self, urm_train: sp.csc_matrix, similarity_function):
-		if not sp.isspmatrix_csc(urm_train):
-			raise TypeError(f"We expected a CSC matrix, we got {type(urm_train)}")
+recommender.fit()
 
-		self.weights = similarity_function(urm_train, self.shrink)
+from Evaluation.Evaluator import Evaluator
 
-	def recommend(self, user_id: int, urm_train: sp.csr_matrix, at: Optional[int] = None, remove_seen: bool = True):
-		user_profile = urm_train[user_id]
-		ranking = user_profile.dot(self.weights).A.flatten()
-
-		if remove_seen:
-			user_profile_start = urm_train.indptr[user_id]
-			user_profile_end = urm_train.indptr[user_id + 1]
-			seen_items = urm_train.indices[user_profile_start:user_profile_end]
-			ranking[seen_items] = -np.inf
-
-		ranking = np.flip(np.argsort(ranking))
-		return ranking[:at]
+e = Evaluator(urm_test, {})
 
 
-recommender = CFItemKNN(shrink=shrink)
-
-recommender.fit(urm_train.tocsc(), cosine_similarity)
 
 ########################################################################################################################
 

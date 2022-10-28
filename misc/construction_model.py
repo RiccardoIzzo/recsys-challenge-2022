@@ -1,7 +1,7 @@
-from utils.data_loader import read_data
-from utils.evaluation_n_metrics import evaluate
-from utils.prep_sub import write_csv
-from utils.preproc_n_split import preproc_n_split
+from Utils.data_loader import read_data
+from Utils.evaluation_n_metrics import evaluate
+from Utils.prep_sub import write_csv
+from Utils.preproc_n_split import preproc_n_split
 
 import numpy as np
 import scipy.sparse as sp
