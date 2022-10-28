@@ -1,0 +1,5 @@
+iai             ==  interaction and impressions
+n_episode_list  ==  data ICM length
+genre_list      ==  data ICM type
+
+Need to create a "submissions" directory to store the submission, i would not push it
