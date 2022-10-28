@@ -61,7 +61,12 @@ def dataset_splits(ratings, num_users, num_items, validation_percentage: float, 
 
 
 def preproc_n_split(iai, test_split: float = 0.2, val_split: float = 0.1):
-
+	"""
+	:param iai:
+	:param test_split:
+	:param val_split:
+	:return: iai, num_users, num_items, urm_train, urm_validation, urm_test
+	"""
 	iai, num_users, num_items = preprocess_data(iai)
 
 	test_split = test_split

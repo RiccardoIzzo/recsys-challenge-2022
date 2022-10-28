@@ -3,6 +3,10 @@ import numpy as np
 
 
 def read_data():
+	"""
+	:return:  iai, n_episode_list, genre_list
+	"""
+
 	iai = pd.read_csv('../data/interactions_and_impressions.csv')
 	iai['impression_list'] = iai['impression_list'].replace([np.nan], '0')
 

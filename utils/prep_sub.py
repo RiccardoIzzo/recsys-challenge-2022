@@ -31,18 +31,17 @@ def prepare_submission(ratings: pd.DataFrame, users_to_recommend: np.array, urm_
 def write_submission(submissions):
 	with open("../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv", "w") as f:
 		f.write(f"user_id,item_list\n")
-		# for user_id, items in submissions:
-		# 	f.write(f"{user_id},{' '.join([str(item) for item in items])}\n")
+		for user_id, items in submissions:
+			f.write(f"{user_id},{' '.join([str(item) for item in items])}\n")
 
 
 def write_csv(iai, urm_train, urm_validation, recommender):
 	"""
-		Need 4 parameter:
-
-		iai -- the interaction and impression matrix
-		urm_train -- the training urm
-		urm_validation -- the validation urm
-		recommender -- the recommender that you want use to write the csv
+	:param iai:
+	:param urm_train:
+	:param urm_validation:
+	:param recommender:
+	:return: void
 	"""
 
 	users_to_recommend = pd.read_csv('../data/data_target_users_test.csv')

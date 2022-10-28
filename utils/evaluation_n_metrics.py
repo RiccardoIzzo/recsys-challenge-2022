@@ -66,6 +66,12 @@ def evaluator(recommender: object, urm_train: sp.csr_matrix, urm_test: sp.csr_ma
 
 
 def evaluate(recommender, urm_train, urm_test):
+	"""
+	:param recommender:
+	:param urm_train:
+	:param urm_test:
+	:return: accum_precision, accum_recall, accum_map, num_user_evaluated, num_users_skipped
+	"""
 	accum_precision, accum_recall, accum_map, num_user_evaluated, num_users_skipped = evaluator(recommender,
 																								urm_train,
 																								urm_test)
