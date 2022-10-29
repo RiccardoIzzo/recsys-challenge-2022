@@ -8,7 +8,7 @@ n_items = 24507
 n_item_non_preproc= 27968
 n_type = 8
 
-def preprocess_data(ratings: pd.DataFrame):
+def preprocess_data_iai(ratings: pd.DataFrame):
 	unique_users = ratings.UserID.unique()
 	unique_items = ratings.ItemID.unique()
 
@@ -34,6 +34,23 @@ def preprocess_data(ratings: pd.DataFrame):
 	return ratings
 
 
+def preprocess_data_iai(matrix: pd.DataFrame):
+	unique_items = matrix.ItemID.unique()
+
+	num_items, min_item_id, max_item_id = unique_items.size, unique_items.min(), unique_items.max()
+
+	print(num_items, min_item_id, max_item_id)
+
+	mapping_item_id = pd.DataFrame({"mapped_item_id": np.arange(num_items), "item_id": unique_items})
+
+	ratings = pd.merge(left=matrix,
+					   right=mapping_item_id,
+					   how="inner",
+					   on="ItemID")
+
+	return ratings
+
+
 class data_loader:
 	def __int__(self, dataset_dir: str = "data"):
 		self.n_users = n_users
@@ -41,13 +58,15 @@ class data_loader:
 		self.n_item_non_preproc = n_item_non_preproc
 		self.n_type = n_type
 
-		iai = pd.read_csv('../' + dataset_dir  + '/interactions_and_impressions.csv')
+		iai = pd.read_csv('../' + dataset_dir + '/interactions_and_impressions.csv')
 		iai['Impressions'] = iai['Impressions'].replace([np.nan], '0')
 
-		ICM_length = pd.read_csv('../' + dataset_dir  + '/data_ICM_length.csv')
-		ICM_type = pd.read_csv('../' + dataset_dir  +  '/data_ICM_type.csv')
+		ICM_length = pd.read_csv('../' + dataset_dir + '/data_ICM_length.csv')
+		ICM_type = pd.read_csv('../' + dataset_dir + '/data_ICM_type.csv')
 
-		iai = preprocess_data(iai)
+		iai = preprocess_data_iai(iai)
+		ICM_length = preprocess_data(ICM_length)
+		ICM_type = preprocess_data(ICM_type)
 
 		# csv to coo sparse matrices
 		self.iai_coo = coo_matrix((iai['Data'], (iai['mapped_user_id'], iai['mapped_item_id'])), shape=(n_users, n_items))
@@ -85,7 +104,7 @@ class data_loader:
 		return self.users_to_recommend
 
 	def get_interactions_csr(self):
-		return self.interactions_csr
+		return self.iai_csr
 
 	def get_users_under_n_interactions(self, n):
 		return np.argwhere(self.interactions_per_user < n)
