@@ -4,8 +4,8 @@ import scipy.sparse as sp
 from sklearn.model_selection import train_test_split
 
 def preprocess_data(ratings: pd.DataFrame):
-	unique_users = ratings.user_id.unique()
-	unique_items = ratings.item_id.unique()
+	unique_users = ratings.UserID.unique()
+	unique_items = ratings.ItemID.unique()
 
 	num_users, min_user_id, max_user_id = unique_users.size, unique_users.min(), unique_users.max()
 	num_items, min_item_id, max_item_id = unique_items.size, unique_items.min(), unique_items.max()
@@ -13,18 +13,18 @@ def preprocess_data(ratings: pd.DataFrame):
 	print(num_users, min_user_id, max_user_id)
 	print(num_items, min_item_id, max_item_id)
 
-	mapping_user_id = pd.DataFrame({"mapped_user_id": np.arange(num_users), "user_id": unique_users})
-	mapping_item_id = pd.DataFrame({"mapped_item_id": np.arange(num_items), "item_id": unique_items})
+	mapping_user_id = pd.DataFrame({"mapped_user_id": np.arange(num_users), "UserID": unique_users})
+	mapping_item_id = pd.DataFrame({"mapped_item_id": np.arange(num_items), "ItemID": unique_items})
 
 	ratings = pd.merge(left=ratings,
 					   right=mapping_user_id,
 					   how="inner",
-					   on="user_id")
+					   on="UserID")
 
 	ratings = pd.merge(left=ratings,
 					   right=mapping_item_id,
 					   how="inner",
-					   on="item_id")
+					   on="ItemID")
 
 	return ratings, num_users, num_items
 
@@ -36,7 +36,7 @@ def dataset_splits(ratings, num_users, num_items, validation_percentage: float, 
 	 item_ids_training, item_ids_test,
 	 ratings_training, ratings_test) = train_test_split(ratings.mapped_user_id,
 														ratings.mapped_item_id,
-														ratings.data,
+														ratings.Data,
 														test_size=testing_percentage,
 														shuffle=True,
 														random_state=seed)
