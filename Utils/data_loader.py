@@ -5,7 +5,7 @@ from scipy.sparse import hstack
 
 n_users = 41629
 n_items = 24507
-n_item_non_preproc= 27968
+n_item_non_preproc= 24507
 n_type = 8
 
 def preprocess_data_iai(ratings: pd.DataFrame):
@@ -34,8 +34,8 @@ def preprocess_data_iai(ratings: pd.DataFrame):
 	return ratings
 
 
-def preprocess_data_iai(matrix: pd.DataFrame):
-	unique_items = matrix.ItemID.unique()
+def preprocess_data_icm(matrix: pd.DataFrame):
+	unique_items = matrix.item_id.unique()
 
 	num_items, min_item_id, max_item_id = unique_items.size, unique_items.min(), unique_items.max()
 
@@ -43,16 +43,16 @@ def preprocess_data_iai(matrix: pd.DataFrame):
 
 	mapping_item_id = pd.DataFrame({"mapped_item_id": np.arange(num_items), "item_id": unique_items})
 
-	ratings = pd.merge(left=matrix,
+	matrix = pd.merge(left=matrix,
 					   right=mapping_item_id,
 					   how="inner",
-					   on="ItemID")
+					   on="item_id")
 
-	return ratings
+	return matrix
 
 
 class data_loader:
-	def __int__(self, dataset_dir: str = "data"):
+	def __init__(self, dataset_dir: str = "data"):
 		self.n_users = n_users
 		self.n_items = n_items
 		self.n_item_non_preproc = n_item_non_preproc
@@ -65,8 +65,8 @@ class data_loader:
 		ICM_type = pd.read_csv('../' + dataset_dir + '/data_ICM_type.csv')
 
 		iai = preprocess_data_iai(iai)
-		ICM_length = preprocess_data(ICM_length)
-		ICM_type = preprocess_data(ICM_type)
+		ICM_length = preprocess_data_icm(ICM_length)
+		ICM_type = preprocess_data_icm(ICM_type)
 
 		# csv to coo sparse matrices
 		self.iai_coo = coo_matrix((iai['Data'], (iai['mapped_user_id'], iai['mapped_item_id'])), shape=(n_users, n_items))
