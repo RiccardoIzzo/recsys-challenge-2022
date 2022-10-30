@@ -179,3 +179,6 @@ class DataLoaderSplit:
 		iai_coo_training, iai_coo_validation, iai_coo_test = _dataset_splits(self.iai, test_split, val_split)
 
 		return iai_coo_training.tocsr(), iai_coo_validation.tocsr(), iai_coo_test.tocsr()
+
+	def get_iai(self):
+		return self.iai

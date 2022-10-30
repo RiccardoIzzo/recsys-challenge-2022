@@ -6,16 +6,16 @@ import datetime
 
 def prepare_submission(ratings: pd.DataFrame, users_to_recommend: np.array, urm_train: sp.csr_matrix,
 					   recommender: object):
-	users_ids_and_mappings = ratings[ratings.UserID.isin(users_to_recommend)][["UserID", "mapped_user_id"]]\
+	users_ids_and_mappings = ratings[ratings.user_id.isin(users_to_recommend)][["user_id", "mapped_user_id"]]\
 		.drop_duplicates()
-	items_ids_and_mappings = ratings[["ItemID", "mapped_item_id"]].drop_duplicates()
+	# items_ids_and_mappings = ratings[["item_id", "mapped_item_id"]].drop_duplicates()
 
-	mapping_to_item_id = dict(zip(ratings.mapped_item_id, ratings.ItemID))
+	mapping_to_item_id = dict(zip(ratings.mapped_item_id, ratings.item_id))
 
 	recommendation_length = 10
 	submission = []
 	for idx, row in users_ids_and_mappings.iterrows():
-		UserID = row.UserID
+		user_id = row.user_id
 		mapped_user_id = row.mapped_user_id
 
 		recommendations = recommender.recommend(user_id=mapped_user_id,
@@ -23,7 +23,7 @@ def prepare_submission(ratings: pd.DataFrame, users_to_recommend: np.array, urm_
 												at=recommendation_length,
 												remove_seen=True)
 
-		submission.append((UserID, [mapping_to_item_id[ItemID] for ItemID in recommendations]))
+		submission.append((user_id, [mapping_to_item_id[item_id] for item_id in recommendations]))
 
 	return submission
 
@@ -31,8 +31,8 @@ def prepare_submission(ratings: pd.DataFrame, users_to_recommend: np.array, urm_
 def write_submission(submissions):
 	with open("../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv", "w") as f:
 		f.write(f"user_id,item_list\n")
-		for UserID, items in submissions:
-			f.write(f"{UserID},{' '.join([str(item) for item in items])}\n")
+		for user_id, items in submissions:
+			f.write(f"{user_id},{' '.join([str(item) for item in items])}\n")
 
 
 def write_csv(iai, urm_train, urm_validation, recommender):

@@ -1,3 +1,4 @@
+from Utils.DataLoaderSplit import DataLoaderSplit
 from Utils.load_data_old import read_data
 from Utils.evaluation_n_metrics import evaluate
 from Utils.prep_sub import write_csv
@@ -15,11 +16,15 @@ validation_split = 0.1
 shrink = 5000000
 slice_size = 100
 
-iai, n_episode_list, genre_list = read_data()
+data_loader = DataLoaderSplit()
+iai = data_loader.get_iai()
+urm_train, urm_test, urm_validation, n_episode_list, ICM_dataframe = data_loader.get_all_csr_matrices()
 
-iai, num_users, num_items, urm_train, urm_validation, urm_test = preproc_n_split(iai,
-																				 test_split=test_split,
-																				 val_split=validation_split)
+# iai, n_episode_list, genre_list = read_data()
+#
+# iai, num_users, num_items, urm_train, urm_validation, urm_test = preproc_n_split(iai,
+# 																				 test_split=test_split,
+# 																				 val_split=validation_split)
 
 # ##############################################	recommender part	 ############################################# #
 
@@ -59,4 +64,4 @@ accum_precision, accum_recall, accum_map, num_user_evaluated, num_users_skipped 
 																						   urm_train,
 																						   urm_test)
 
-write_csv(iai, urm_train, urm_validation, recommender)
+# write_csv(iai, urm_train, urm_validation, recommender)
