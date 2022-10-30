@@ -12,7 +12,7 @@ from typing import Optional
 # Hyperparameter
 test_split = 0.2
 validation_split = 0.1
-shrink = 50
+shrink = 5000000
 slice_size = 100
 
 iai, n_episode_list, genre_list = read_data()
