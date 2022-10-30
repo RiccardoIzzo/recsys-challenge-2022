@@ -1,5 +1,5 @@
 import pandas as pd
-from Utils.data_loader import data_loader
+from Utils.DataLoaderSplit import DataLoaderSplit
 from Utils.evaluation_n_metrics import evaluate
 from Utils.prep_sub import write_csv
 from Utils.preproc_n_split import preproc_n_split
@@ -11,8 +11,8 @@ shrink = 350000000
 slice_size = 100
 
 # URM_all_dataframe, ICM_dataframe2, ICM_dataframe = read_data()
-data_loader = data_loader()
-URM_all_dataframe, n_episode_list, ICM_dataframe = data_loader.get_csr_matrices()
+data_loader = DataLoaderSplit()
+train, test, val, n_episode_list, ICM_dataframe = data_loader.get_csr_matrices()
 """
 URM_all_dataframe, num_users, num_items, urm_train, urm_validation, urm_test = preproc_n_split(URM_all_dataframe, test_split=test_split,
                                                                                  val_split=validation_split)
