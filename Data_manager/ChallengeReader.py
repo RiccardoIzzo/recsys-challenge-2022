@@ -5,7 +5,7 @@ from Data_manager.DatasetMapperManager import DatasetMapperManager
 
 def _loadURM(URM_path, separator=','):
 
-	URM_all_dataframe = pd.read_csv(filepath_or_buffer=URM_path, sep=separator, dtype={0: str, 1: str, 2: str, 3: int}, engine='python')
+	URM_all_dataframe = pd.read_csv(filepath_or_buffer=URM_path, sep=separator, dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
 	URM_all_dataframe.rename(columns={URM_all_dataframe.columns[0]: 'user_id',
 									  URM_all_dataframe.columns[1]: 'item_id',
 									  URM_all_dataframe.columns[2]: 'impressions',
@@ -40,7 +40,7 @@ class ChallengeReader(DataReader):
 	AVAILABLE_URM = ["URM_all"]
 	AVAILABLE_ICM = ["ICM_length", "ICM_type"]
 
-	IS_IMPLICIT = False
+	IS_IMPLICIT = True
 
 	def _get_dataset_name_root(self):
 		return self.DATASET_FOLDER

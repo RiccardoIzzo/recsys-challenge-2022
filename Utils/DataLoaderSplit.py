@@ -9,6 +9,40 @@ n_items = 27968
 n_item_non_preproc = 27968
 n_type = 8
 
+
+
+def _dataset_splits(matrix, testing_percentage: float, validation_percentage: float, seed=42):
+
+	(user_ids_training, user_ids_test,
+	 item_ids_training, item_ids_test,
+	 matrix_training, matrix_test) = train_test_split(matrix.mapped_user_id,
+													  matrix.mapped_item_id,
+													  matrix.data,
+													  test_size=testing_percentage,
+													  shuffle=True,
+													  random_state=seed)
+
+	(user_ids_training, user_ids_validation,
+	 item_ids_training, item_ids_validation,
+	 matrix_training, matrix_validation) = train_test_split(user_ids_training,
+															item_ids_training,
+															matrix_training,
+															test_size=validation_percentage)
+
+	iai_coo_training = coo_matrix((matrix_training,
+						  (user_ids_training, item_ids_training)),
+						 shape=(n_users, n_items))
+
+	iai_coo_validation = coo_matrix((matrix_validation,
+							  (user_ids_validation, item_ids_validation)),
+							 shape=(n_users, n_items))
+
+	iai_coo_test = coo_matrix((matrix_test,
+							  (user_ids_test, item_ids_test)),
+							  shape=(n_users, n_items))
+
+	return iai_coo_training, iai_coo_validation, iai_coo_test
+
 def _preprocess_data(matrix: pd.DataFrame):
 
 	# if matrix.columns[0] == 'user_id':
@@ -52,38 +86,13 @@ def _preprocess_data(matrix: pd.DataFrame):
 	return matrix
 
 
-def _dataset_splits(matrix, testing_percentage: float, validation_percentage: float, seed=42):
+def normalize_matrix(matrix):
+	max = np.max(matrix.data)
+	min = np.min(matrix.data)
 
-	(user_ids_training, user_ids_test,
-	 item_ids_training, item_ids_test,
-	 matrix_training, matrix_test) = train_test_split(matrix.mapped_user_id,
-													  matrix.mapped_item_id,
-													  matrix.data,
-													  test_size=testing_percentage,
-													  shuffle=True,
-													  random_state=seed)
+	matrix.data = (matrix.data - min) / (max - min)
 
-	(user_ids_training, user_ids_validation,
-	 item_ids_training, item_ids_validation,
-	 matrix_training, matrix_validation) = train_test_split(user_ids_training,
-															item_ids_training,
-															matrix_training,
-															test_size=validation_percentage)
-
-	iai_coo_training = coo_matrix((matrix_training,
-						  (user_ids_training, item_ids_training)),
-						 shape=(n_users, n_items))
-
-	iai_coo_validation = coo_matrix((matrix_validation,
-							  (user_ids_validation, item_ids_validation)),
-							 shape=(n_users, n_items))
-
-	iai_coo_test = coo_matrix((matrix_test,
-							  (user_ids_test, item_ids_test)),
-							  shape=(n_users, n_items))
-
-	return iai_coo_training, iai_coo_validation, iai_coo_test
-
+	return matrix
 
 class DataLoaderSplit:
 	def __init__(self, dataset_dir: str = "data", test_split=0.2, val_split=0.1):
@@ -92,26 +101,29 @@ class DataLoaderSplit:
 		self.n_item_non_preproc = n_item_non_preproc
 		self.n_type = n_type
 
-		iai = pd.read_csv('../' + dataset_dir + '/interactions_and_impressions.csv', dtype={'Impressions': str})
-		iai.rename(columns={iai.columns[0]: 'user_id',
-							iai.columns[1]: 'item_id',
-							iai.columns[2]: 'impressions',
-							iai.columns[3]: 'data'},
+		URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
+						  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
+		URM.rename(columns={URM.columns[0]: 'user_id',
+							URM.columns[1]: 'item_id',
+							URM.columns[2]: 'impressions',
+							URM.columns[3]: 'data'},
 				   inplace=True)
-		iai['impressions'] = iai['impressions'].replace([np.nan], '0')
+		URM['impressions'] = URM['impressions'].replace([np.nan], '0')
 
-		ICM_length = pd.read_csv('../' + dataset_dir + '/data_ICM_length.csv')
-		ICM_type = pd.read_csv('../' + dataset_dir + '/data_ICM_type.csv')
+		ICM_length_path = '../data/data_ICM_length.csv'
+		ICM_type_path = '../data/data_ICM_type.csv'
+		ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
+		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 
-		iai = _preprocess_data(iai)
-		self.iai = iai
+		# URM = _preprocess_data(URM)
+		self.URM = URM
 		# ICM_length = _preprocess_data(ICM_length)
 		# ICM_type = _preprocess_data(ICM_type)
 
 		# csv to coo sparse matrices
-		self.iai_coo = coo_matrix((iai['data'], (iai['mapped_user_id'], iai['mapped_item_id'])), shape=(n_users, n_items))
+		self.URM_coo = coo_matrix((URM['data'], (URM['user_id'], URM['item_id'])), shape=(n_users, n_items))
 
-		self.iai_coo_training, self.iai_coo_validation, self.iai_coo_test = _dataset_splits(iai, test_split, val_split)
+		# self.URM_coo_training, self.URM_coo_validation, self.URM_coo_test = _dataset_splits(URM, test_split, val_split)
 
 		self.ICM_length_coo = coo_matrix((ICM_length['data'], (ICM_length['item_id'], ICM_length['feature_id'])),
 										 shape=(n_item_non_preproc, 1))
@@ -119,11 +131,15 @@ class DataLoaderSplit:
 									   shape=(n_item_non_preproc, n_type))
 
 		#coo to csr sparse matrices
-		self.iai_csr = self.iai_coo.tocsr()
+		self.URM_csr = self.URM_coo.tocsr()
+		print('Doing Normalization')
+		from sklearn.preprocessing import normalize
+		self.normalize_URM_csr = normalize(self.URM_csr, norm='l2', axis=1)
+		# self.normalize_URM_csr = normalize_matrix(self.URM_csr)
 
-		self.iai_csr_training = self.iai_coo_training.tocsr()
-		self.iai_csr_validation = self.iai_coo_validation.tocsr()
-		self.iai_csr_test = self.iai_coo_test.tocsr()
+		# self.URM_csr_training = self.URM_coo_training.tocsr()
+		# self.URM_csr_validation = self.URM_coo_validation.tocsr()
+		# self.URM_csr_test = self.URM_coo_test.tocsr()
 
 		self.ICM_length_csr = self.ICM_length_coo.tocsr()
 		self.ICM_type_csr = self.ICM_type_coo.tocsr()
@@ -131,10 +147,9 @@ class DataLoaderSplit:
 		self.episodes_per_item = np.sum(self.ICM_length_csr, axis=1)
 		self.episodes_per_item_normalized = self.episodes_per_item / np.max(self.episodes_per_item)
 
-		self.ICM_matrix = hstack(
-			(self.ICM_type_csr, self.ICM_length_csr, self.episodes_per_item)).tocsr()
+		self.ICM_matrix = hstack((self.ICM_type_csr, self.ICM_length_csr, self.episodes_per_item)).tocsr()
 
-		self.interactions_per_user = np.ediff1d(self.iai_csr.indptr)
+		self.interactions_per_user = np.ediff1d(self.URM_csr.indptr)
 		self.episodes_per_item = np.ediff1d(self.ICM_length_csr.indptr)
 		self.type_per_item = np.ediff1d(self.ICM_type_csr.indptr)
 		self.items_per_type = np.ediff1d(self.ICM_type_csr.tocsc().indptr)
@@ -143,30 +158,30 @@ class DataLoaderSplit:
 
 	# COO Matrices
 	def get_coo_matrices(self):
-		return self.iai_coo, self.ICM_length_coo, self.ICM_type_coo
+		return self.URM_coo, self.ICM_length_coo, self.ICM_type_coo
 
-	def get_split_iai_coo_matrix(self):
-		return self.iai_coo_training, self.iai_coo_validation, self.iai_coo_test
-
-	def get_all_coo_matrices(self):
-		return self.iai_coo_training, self.iai_coo_validation, self.iai_coo_test, self.ICM_length_coo, self.ICM_type_coo
+	# def get_split_URM_coo_matrix(self):
+	# 	return self.URM_coo_training, self.URM_coo_validation, self.URM_coo_test
+	# 
+	# def get_all_coo_matrices(self):
+	# 	return self.URM_coo_training, self.URM_coo_validation, self.URM_coo_test, self.ICM_length_coo, self.ICM_type_coo
 
 	# CSR Matrices
 	def get_csr_matrices(self):
-		return self.iai_csr, self.ICM_length_csr, self.ICM_type_csr
+		return self.normalize_URM_csr, self.ICM_length_csr, self.ICM_type_csr
 
-	def get_split_iai_csr_matrix(self):
-		return self.iai_csr_training, self.iai_csr_validation, self.iai_csr_test
-
-	def get_all_csr_matrices(self):
-		return self.iai_csr_training, self.iai_csr_validation, self.iai_csr_test, self.ICM_length_csr, self.ICM_type_csr
+	# def get_split_URM_csr_matrix(self):
+	# 	return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test
+	# 
+	# def get_all_csr_matrices(self):
+	# 	return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test, self.ICM_length_csr, self.ICM_type_csr
 
 	# Other stuff
 	def get_users_to_recommend(self):
 		return self.users_to_recommend
 
 	def get_interactions_csr(self):
-		return self.iai_csr_training, self.iai_csr_validation, self.iai_csr_test
+		return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test
 
 	def get_users_under_n_interactions(self, n):
 		return np.argwhere(self.interactions_per_user < n)
@@ -176,9 +191,9 @@ class DataLoaderSplit:
 							  np.argwhere(self.interactions_per_user < max))
 
 	def get_new_split_csr_matrix(self, test_split=0.2, val_split=0.1):
-		iai_coo_training, iai_coo_validation, iai_coo_test = _dataset_splits(self.iai, test_split, val_split)
+		URM_coo_training, URM_coo_validation, URM_coo_test = _dataset_splits(self.URM, test_split, val_split)
 
-		return iai_coo_training.tocsr(), iai_coo_validation.tocsr(), iai_coo_test.tocsr()
+		return URM_coo_training.tocsr(), URM_coo_validation.tocsr(), URM_coo_test.tocsr()
 
-	def get_iai(self):
-		return self.iai
+	def get_URM_dataframe(self):
+		return self.URM
