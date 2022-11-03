@@ -172,22 +172,24 @@ class DataLoaderSplit:
 		self.n_item_non_preproc = n_item_non_preproc
 		self.n_type = n_type
 
-		URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
-						  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
-		URM.rename(columns={URM.columns[0]: 'user_id',
-							URM.columns[1]: 'item_id',
-							URM.columns[2]: 'impressions',
-							URM.columns[3]: 'data'},
+		# URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
+		# 				  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
+		URM_df = pd.read_csv(filepath_or_buffer='../data/interactionScored.csv',
+						  dtype={0: int, 1: int, 2: int}, engine='python')
+		URM_df.rename(columns={URM_df.columns[0]: 'user_id',
+							URM_df.columns[1]: 'item_id',
+							# URM_df.columns[2]: 'impressions',
+							URM_df.columns[2]: 'data'},
 				   inplace=True)
-		URM['impressions'] = URM['impressions'].replace([np.nan], '0')
+		# URM_df['impressions'] = URM_df['impressions'].replace([np.nan], '0')
 
 		ICM_length_path = '../data/data_ICM_length.csv'
 		ICM_type_path = '../data/data_ICM_type.csv'
 		ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 
-		print('Start prep')
-		URM_df = _preprocess_df(URM, ICM_length, ICM_type)
+		# print('Start prep')
+		# URM_df = _preprocess_df(URM, ICM_length, ICM_type)
 
 		# URM = _preprocess_data(URM)
 		self.URM_df = URM_df
