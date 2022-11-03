@@ -96,7 +96,7 @@ def _first_factor(avg_episode_watched_by_user, length, item, urm):
 
 
 	else:
-		x = length.loc[length['item_id'] == item]
+		x = length.loc[length['item_id'] == 11, 'data'].item()
 
 
 	return avg_episode_watched_by_user / x
@@ -112,7 +112,7 @@ def _second_factor(length, item, n_0):
 		x = 1
 
 	else:
-		x = length.loc[length['item_id'] == item]
+		x = length.loc[length['item_id'] == 11, 'data'].item()
 
 	return n_0 / x
 
