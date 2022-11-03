@@ -10,7 +10,6 @@ n_item_non_preproc = 27968
 n_type = 8
 
 
-
 def _dataset_splits(matrix, testing_percentage: float, validation_percentage: float, seed=42):
 
 	(user_ids_training, user_ids_test,
@@ -82,11 +81,83 @@ def _preprocess_data(matrix: pd.DataFrame):
 	# 		else:
 	# 			l.append([i, 0, 0])
 
-
 	return matrix
 
+def _first_factor(avg_episode_watched_by_user, length, item, urm):
 
-def normalize_matrix(matrix):
+	if length.loc[length['item_id'] == item].empty:
+		# se è vuoto va qui
+		# cerca in urm max episode di item  e assegna a x
+
+
+		# aggiunge x in icm
+
+		x = 1
+
+
+	else:
+		x = length.loc[length['item_id'] == item]
+
+
+	return avg_episode_watched_by_user / x
+
+
+def _second_factor(length, item, n_0):
+	if length.loc[length['item_id'] == item].empty:
+		# se è vuoto va qui
+		# cerca in urm max episode di item  e assegna a x
+
+		# aggiunge x in icm
+
+		x = 1
+
+	else:
+		x = length.loc[length['item_id'] == item]
+
+	return n_0 / x
+
+def _avg_episode_watched_by_user(item_list, unique_items):
+	n_0 = 0
+	counter = 0
+	for item in unique_items:
+		n_0 += np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 0)
+		counter += 1
+
+	return n_0 / counter
+
+
+def _preprocess_df(urm, length, type):
+
+	weight_0 = 0.8
+	weight_1 = 0.2
+
+	df = []
+	unique_users = urm.user_id.unique()
+
+	from tqdm import tqdm
+
+	for user in tqdm(unique_users):
+
+		item_list = urm.loc[urm['user_id'] == user, ['item_id', 'data']]
+
+		unique_items = item_list.item_id.unique()
+
+		avg_episode_watched_by_user = _avg_episode_watched_by_user(item_list, unique_items)
+		# avg_episode_watched_by_user =
+
+		for item in unique_items:
+			n_0 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 0)
+			n_1 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 1)
+
+			score = (weight_1 * n_1 * _first_factor(avg_episode_watched_by_user, length, item, urm)) + \
+					(weight_0 * n_0 * _second_factor(length, item, n_0))
+
+			df.append([user, item, score])
+
+	return pd.DataFrame(df, columns=['user_id', 'item_id', 'data'])
+
+
+def _normalize_matrix(matrix):
 	max = np.max(matrix.data)
 	min = np.min(matrix.data)
 
@@ -115,13 +186,16 @@ class DataLoaderSplit:
 		ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 
+		print('Start prep')
+		URM_df = _preprocess_df(URM, ICM_length, ICM_type)
+
 		# URM = _preprocess_data(URM)
-		self.URM = URM
+		self.URM_df = URM_df
 		# ICM_length = _preprocess_data(ICM_length)
 		# ICM_type = _preprocess_data(ICM_type)
 
 		# csv to coo sparse matrices
-		self.URM_coo = coo_matrix((URM['data'], (URM['user_id'], URM['item_id'])), shape=(n_users, n_items))
+		self.URM_coo = coo_matrix((URM_df['data'], (URM_df['user_id'], URM_df['item_id'])), shape=(n_users, n_items))
 
 		# self.URM_coo_training, self.URM_coo_validation, self.URM_coo_test = _dataset_splits(URM, test_split, val_split)
 
@@ -132,10 +206,12 @@ class DataLoaderSplit:
 
 		#coo to csr sparse matrices
 		self.URM_csr = self.URM_coo.tocsr()
+
 		print('Doing Normalization')
 		from sklearn.preprocessing import normalize
 		self.normalize_URM_csr = normalize(self.URM_csr, norm='l2', axis=1)
-		# self.normalize_URM_csr = normalize_matrix(self.URM_csr)
+
+		# self.normalize_URM_csr = _normalize_matrix(self.URM_csr)
 
 		# self.URM_csr_training = self.URM_coo_training.tocsr()
 		# self.URM_csr_validation = self.URM_coo_validation.tocsr()
