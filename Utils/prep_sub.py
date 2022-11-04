@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import csv
+from tqdm import tqdm
 
 def write_submission(recommender):
 
@@ -13,7 +14,7 @@ def write_submission(recommender):
 		writer = csv.writer(file)
 		writer.writerow(['user_id', 'item_list'])
 
-		for userID in targetUsers:
+		for userID in tqdm(targetUsers):
 			writer.writerow([userID, str(np.array(recommender.recommend(userID, 10)))[1:-1]])
 
 	print("Printing finished")

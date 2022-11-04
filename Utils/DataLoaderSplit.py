@@ -10,38 +10,6 @@ n_item_non_preproc = 27968
 n_type = 8
 
 
-def _dataset_splits(matrix, testing_percentage: float, validation_percentage: float, seed=42):
-
-	(user_ids_training, user_ids_test,
-	 item_ids_training, item_ids_test,
-	 matrix_training, matrix_test) = train_test_split(matrix.mapped_user_id,
-													  matrix.mapped_item_id,
-													  matrix.data,
-													  test_size=testing_percentage,
-													  shuffle=True,
-													  random_state=seed)
-
-	(user_ids_training, user_ids_validation,
-	 item_ids_training, item_ids_validation,
-	 matrix_training, matrix_validation) = train_test_split(user_ids_training,
-															item_ids_training,
-															matrix_training,
-															test_size=validation_percentage)
-
-	iai_coo_training = coo_matrix((matrix_training,
-						  (user_ids_training, item_ids_training)),
-						 shape=(n_users, n_items))
-
-	iai_coo_validation = coo_matrix((matrix_validation,
-							  (user_ids_validation, item_ids_validation)),
-							 shape=(n_users, n_items))
-
-	iai_coo_test = coo_matrix((matrix_test,
-							  (user_ids_test, item_ids_test)),
-							  shape=(n_users, n_items))
-
-	return iai_coo_training, iai_coo_validation, iai_coo_test
-
 def _preprocess_data(matrix: pd.DataFrame):
 
 	# if matrix.columns[0] == 'user_id':
@@ -66,95 +34,7 @@ def _preprocess_data(matrix: pd.DataFrame):
 					   right=mapping_item_id,
 					   how="inner",
 					   on="item_id")
-
-	# Fill ICM matrix (usless??)
-	# else:
-	# 	l = []
-	# 	c = 0
-	# 	for i in range(n_items):
-	# 		if i < 23091:
-	# 			if matrix['item_id'][c] == i:
-	# 				l.append([matrix['item_id'][c], matrix['feature_id'][c], matrix['data'][c]])
-	# 				c += 1
-	# 			else:
-	# 				l.append([i, 0, mean_episode])
-	# 		else:
-	# 			l.append([i, 0, 0])
-
 	return matrix
-
-def _first_factor(avg_episode_watched_by_user, length, item, urm):
-
-	if length.loc[length['item_id'] == item].empty:
-		# se è vuoto va qui
-		# cerca in urm max episode di item  e assegna a x
-
-
-		# aggiunge x in icm
-
-		x = 1
-
-
-	else:
-		x = length.loc[length['item_id'] == 11, 'data'].item()
-
-
-	return avg_episode_watched_by_user / x
-
-
-def _second_factor(length, item, n_0):
-	if length.loc[length['item_id'] == item].empty:
-		# se è vuoto va qui
-		# cerca in urm max episode di item  e assegna a x
-
-		# aggiunge x in icm
-
-		x = 1
-
-	else:
-		x = length.loc[length['item_id'] == 11, 'data'].item()
-
-	return n_0 / x
-
-def _avg_episode_watched_by_user(item_list, unique_items):
-	n_0 = 0
-	counter = 0
-	for item in unique_items:
-		n_0 += np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 0)
-		counter += 1
-
-	return n_0 / counter
-
-
-def _preprocess_df(urm, length, type):
-
-	weight_0 = 0.8
-	weight_1 = 0.2
-
-	df = []
-	unique_users = urm.user_id.unique()
-
-	from tqdm import tqdm
-
-	for user in tqdm(unique_users):
-
-		item_list = urm.loc[urm['user_id'] == user, ['item_id', 'data']]
-
-		unique_items = item_list.item_id.unique()
-
-		avg_episode_watched_by_user = _avg_episode_watched_by_user(item_list, unique_items)
-		# avg_episode_watched_by_user =
-
-		for item in unique_items:
-			n_0 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 0)
-			n_1 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 1)
-
-			score = (weight_1 * n_1 * _first_factor(avg_episode_watched_by_user, length, item, urm)) + \
-					(weight_0 * n_0 * _second_factor(length, item, n_0))
-
-			df.append([user, item, score])
-
-	return pd.DataFrame(df, columns=['user_id', 'item_id', 'data'])
 
 
 def _normalize_matrix(matrix):
