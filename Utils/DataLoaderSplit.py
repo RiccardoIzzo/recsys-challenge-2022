@@ -46,7 +46,7 @@ def _normalize_matrix(matrix):
 	return matrix
 
 class DataLoaderSplit:
-	def __init__(self, dataset_dir: str = "data", test_split=0.2, val_split=0.1):
+	def __init__(self, dataset_dir: str = "data", test_split=0.2, val_split=0.1, urm='interactionScored.csv'):
 		self.n_users = n_users
 		self.n_items = n_items
 		self.n_item_non_preproc = n_item_non_preproc
@@ -54,8 +54,8 @@ class DataLoaderSplit:
 
 		# URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
 		# 				  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
-		URM_df = pd.read_csv(filepath_or_buffer='../data/interactionScored.csv',
-						  dtype={0: int, 1: int, 2: int}, engine='python')
+		URM_df = pd.read_csv(filepath_or_buffer='../data/' + urm,
+							 dtype={0: int, 1: int, 2: float}, engine='python')
 		URM_df.rename(columns={URM_df.columns[0]: 'user_id',
 							URM_df.columns[1]: 'item_id',
 							# URM_df.columns[2]: 'impressions',
