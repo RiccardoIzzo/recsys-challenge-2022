@@ -51,7 +51,7 @@ class ChallengeReader(DataReader):
 
 		ICM_type_path = "../data/data_ICM_type.csv"
 		ICM_length_path = "../data/data_ICM_length.csv"
-		URM_path = "../data/interactions_and_impressions.csv"
+		URM_path = "../data/interactionScored.csv"
 
 		self._print("Loading Interactions")
 		URM_all_dataframe, URM_impressions_dataframe = _loadURM(URM_path)

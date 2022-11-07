@@ -29,7 +29,7 @@ def _preprocess_data(matrix: pd.DataFrame):
 	return matrix
 
 
-def _first_factor(avg_episode_watched_by_user, length, item, urm):
+def _first_factor(avg_episode_watched_by_user, length, item):
 	x = length.loc[length['item_id'] == item, 'data'].item()
 	return avg_episode_watched_by_user / x
 
@@ -72,7 +72,7 @@ def _preprocess_df(urm, length, type):
 			n_0 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 0)
 			n_1 = np.sum(item_list.loc[item_list['item_id'] == item, 'data'] == 1)
 
-			score = (weight_1 * n_1 * _first_factor(avg_episode_watched_by_user, length, item, urm)) + \
+			score = (weight_1 * n_1 * _first_factor(avg_episode_watched_by_user, length, item)) + \
 					(weight_0 * n_0 * _second_factor(length, item, n_0))
 
 			df.append([user, item, score])
@@ -81,16 +81,16 @@ def _preprocess_df(urm, length, type):
 # URM_df = _preprocess_df(URM, ICM_length, ICM_type)
 
 
-URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
+urm = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
 				  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
-URM.rename(columns={URM.columns[0]: 'user_id',
-					URM.columns[1]: 'item_id',
-					URM.columns[2]: 'impressions',
-					URM.columns[3]: 'data'},
+urm.rename(columns={urm.columns[0]: 'user_id',
+					urm.columns[1]: 'item_id',
+					urm.columns[2]: 'impressions',
+					urm.columns[3]: 'data'},
 		   inplace=True)
-URM['impressions'] = URM['impressions'].replace([np.nan], '0')
+urm['impressions'] = urm['impressions'].replace([np.nan], '0')
 
-ICM_length_path = '../data/data_ICM_length.csv'
+ICM_length_path = '../data/Complete_ICM_length.csv'
 ICM_type_path = '../data/data_ICM_type.csv'
 ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
@@ -98,7 +98,21 @@ ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 # URM = _preprocess_data(URM)
 
 print('Start prep')
-URM_df = _preprocess_df(URM, ICM_length, ICM_type)
+URM_df = _preprocess_df(urm, ICM_length, ICM_type)
 # URM_df = URM.apply(prep(ICM_length, URM))
 
 URM_df.to_csv('../dataframe11.csv', index=False)
+
+# Fast as hell method
+
+import numpy as np
+import pandas as pd
+
+urm = pd.read_csv(filepath_or_buffer='../data/Mastro_df.csv', engine='python')
+
+w_0 = 0.2
+w_1 = 0.8
+
+scores = ((urm.n_0 / urm.ep_tot) * urm.n_0 * w_0 + ((urm.avg_watched_ep / urm.ep_tot) * w_1 * urm.n_1))
+
+urm['score'] = scores
