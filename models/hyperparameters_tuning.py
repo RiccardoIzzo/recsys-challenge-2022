@@ -32,8 +32,14 @@ URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trai
 evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
 evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])
 
+import scipy.sparse as sp
+icm_mixed = sp.hstack([ICM_length, ICM_type])
+# urm_icm_stacked = sp.vstack([URM_train, icm_mixed.T])
+urm_stacked_mix_train = sp.vstack([URM_train, icm_mixed.T])
+urm_stacked_mix_train_validation = sp.vstack([URM_train_validation, icm_mixed.T])
+
 ### CHOOSE RECOMMENDER HERE ###
-recommender_class = PureSVDRecommender
+recommender_class = ItemKNNCFRecommender
 
 # hyperparameterSearch = SearchBayesianSkopt(recommender_class,
 #                                                evaluator_validation=evaluator_validation,
@@ -54,8 +60,8 @@ cutoff_to_optimize = 10
 # }
 
 runHyperparameterSearch_Collaborative(recommender_class,
-                                      URM_train=URM_train,
-                                      URM_train_last_test=URM_train_validation,
+                                      URM_train=urm_stacked_mix_train,
+                                      URM_train_last_test=urm_stacked_mix_train_validation,
                                       metric_to_optimize=metric_to_optimize,
                                       cutoff_to_optimize=cutoff_to_optimize,
                                       evaluator_validation_earlystopping=evaluator_validation,
