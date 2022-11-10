@@ -112,6 +112,8 @@ print(result_df.loc[10])
 
 # recommender.save_model('../trained_models', file_name='IALS_recommender_model')
 
+from numpy import linalg as LA
+
 class DifferentLossScoresHybridRecommender(BaseRecommender):
     """ ScoresHybridRecommender
     Hybrid of two prediction scores R = R1/norm*alpha + R2/norm*(1-alpha) where R1 and R2 come from
@@ -157,7 +159,8 @@ class DifferentLossScoresHybridRecommender(BaseRecommender):
     recommender_object = DifferentLossScoresHybridRecommender(URM_train, ItemKNNCF_recommender, P3alpha_recommender)
 
     for norm in [1, 2, np.inf, -np.inf]:
-        recommender_object.fit(norm, alpha=0.66)
+        for alpha in [0.1, 0.3, 0.5, 0.7, 0.9]:
+            recommender_object.fit(norm, alpha=alpha)
 
-        result_df, _ = evaluator_validation.evaluateRecommender(recommender_object)
-        print("Norm: {}, Result: {}".format(norm, result_df.loc[10]["MAP"]))
+            result_df, _ = evaluator_validation.evaluateRecommender(recommender_object)
+            print("Norm: {}, Alpha: {}, Result: {}".format(norm, alpha, result_df.loc[10]["MAP"]))

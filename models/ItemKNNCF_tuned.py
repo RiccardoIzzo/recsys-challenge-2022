@@ -10,7 +10,7 @@ best_hyperparams_ItemKNNCF = {'topK': 595, 'shrink': 800, 'similarity': 'cosine'
 
 data_loader = DataLoaderSplit(urm='LastURM.csv')
 URM, ICM_length_csr, ICM_type_csr = data_loader.get_csr_matrices()
-URM_train, URM_test = split_train_in_two_percentage_global_sample(URM, train_percentage=0.85)
+URM_train, URM_test = split_train_in_two_percentage_global_sample(URM, train_percentage=0.8)
 
 recommender = ItemKNNCFRecommender(URM_train=URM_train)
 recommender.fit(**best_hyperparams_ItemKNNCF)
@@ -22,3 +22,10 @@ print(result_dict.MAP)  # 0.027
 # recommender.save_model("../trained_models/", file_name=recommender.RECOMMENDER_NAME + "_best.zip")
 # recommender.load_model(folder_path = "../trained_models/", file_name = recommender.RECOMMENDER_NAME + "_best.zip")
 # write_submission(recommender=recommender)
+
+import pandas as pd
+targetUsers = pd.read_csv('../data/data_target_users_test.csv')['user_id']
+# targetUsers = targetUsers.tolist()
+# x = recommender.recommend(targetUsers, cutoff=10, return_scores=True)
+x = recommender.recommend([20, 21, 450], cutoff=10, return_scores=True)
+y = x[1].reshape(27968, targetUsers.shape[0])
