@@ -54,7 +54,7 @@ def linear_combination():
     ######################### DATA PREPARATION ###########################################
 
     # generate the dataframes for URM and ICMs
-    dataReader = DataLoaderSplit(urm='interactionScoredOld.csv')
+    dataReader = DataLoaderSplit(urm='LastURM.csv')
     URM, ICM_length, ICM_type = dataReader.get_csr_matrices()
 
     # concatenate the ICMs
@@ -73,17 +73,22 @@ def linear_combination():
     output_folder_path = "../trained_models/"
 
     from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-    best_hyperparams_ItemKNNCF = {'topK': 785, 'shrink': 41, 'similarity': 'cosine', 'normalize': True}
+    best_hyperparams_ItemKNNCF = {'topK': 135, 'shrink': 257, 'similarity': 'cosine', 'normalize': True,
+                                  'feature_weighting': 'TF-IDF'}
     rec1 = ItemKNNCFRecommender(URM_train)
     rec1.fit(**best_hyperparams_ItemKNNCF)
     # rec1.load_model(folder_path="../trained_models/",
     #                 file_name=rec1.RECOMMENDER_NAME + "_cosine_best_model_last.zip")
     print("Recommender 1 is ready!")
 
-    from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
-    rec2 = P3alphaRecommender(URM_train)
-    rec2.fit(topK=633, alpha=0.0, normalize_similarity=True)
+    # from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
+    # rec2 = P3alphaRecommender(URM_train)
+    # rec2.fit(topK=633, alpha=0.0, normalize_similarity=True)
     # rec2.load_model(folder_path="../trained_models/", file_name=rec2.RECOMMENDER_NAME + "_best_model_last.zip")
+    from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+    best_hyperparams_EASE_R = {'topK': None, 'normalize_matrix': False, 'l2_norm': 6.684323468481221}
+    rec2 = EASE_R_Recommender(URM_train)
+    rec2.fit(**best_hyperparams_EASE_R)
     print("Recommender 2 is ready!")
 
     ############ TUNE THOSE HYPERPARAMETERS BABEH ##########################################
