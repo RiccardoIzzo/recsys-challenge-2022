@@ -6,7 +6,7 @@ from Utils.DataLoaderSplit import DataLoaderSplit
 import numpy as np
 
 
-dataReader = DataLoaderSplit(urm='URM_df.csv')
+dataReader = DataLoaderSplit(urm='LastURM.csv')
 URM, ICM_length, ICM_type = dataReader.get_csr_matrices()
 
 URM, URM_test = split_train_in_two_percentage_global_sample(URM, train_percentage=0.8)
@@ -44,10 +44,7 @@ print("Recommender 2 is ready!")
 from Utils.DifferentLossScoresHybridRecommender import DifferentLossScoresHybridRecommender
 
 
-recommender = DifferentLossScoresHybridRecommender(URM, [ItemKNNCF, EASE_R])
-
-result_df, _ = evaluator_test.evaluateRecommender(recommender)
-print("Result: " + result_df.loc[10]["MAP"])
+recommender = DifferentLossScoresHybridRecommender(URM, ItemKNNCF, EASE_R)
 
 map_list = []
 

@@ -1,5 +1,6 @@
 from Recommenders.BaseRecommender import BaseRecommender
 import scipy.sparse as sps
+from numpy import linalg as LA
 
 
 class DifferentLossScoresHybridRecommender(BaseRecommender):
@@ -17,7 +18,6 @@ class DifferentLossScoresHybridRecommender(BaseRecommender):
         self.URM_train = sps.csr_matrix(URM_train)
         self.recommender_1 = recommender_1
         self.recommender_2 = recommender_2
-
 
     def fit(self, norm, alpha=0.5):
 
@@ -40,7 +40,7 @@ class DifferentLossScoresHybridRecommender(BaseRecommender):
             raise ValueError(
                 "Norm {} of item weights for recommender 2 is zero. Avoiding division by zero".format(self.norm))
 
-        item_weights = item_weights_1 / norm_item_weights_1 * self.alpha + \
-                       item_weights_2 / norm_item_weights_2 * (1 - self.alpha)
+        item_weights = item_weights_1 / norm_item_weights_1 * self.alpha + item_weights_2 / norm_item_weights_2 * (
+                1 - self.alpha)
 
         return item_weights
