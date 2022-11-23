@@ -9,77 +9,53 @@ n_items = 27968
 n_item_non_preproc = 27968
 n_type = 8
 
-
-def _preprocess_data(matrix: pd.DataFrame):
-
-	# if matrix.columns[0] == 'user_id':
-	unique_users = matrix.user_id.unique()
-	unique_items = matrix.item_id.unique()
-
-	num_users, min_user_id, max_user_id = unique_users.size, unique_users.min(), unique_users.max()
-	num_items, min_item_id, max_item_id = unique_items.size, unique_items.min(), unique_items.max()
-
-	print(num_users, min_user_id, max_user_id)
-	print(num_items, min_item_id, max_item_id)
-
-	mapping_user_id = pd.DataFrame({"mapped_user_id": np.arange(num_users), "user_id": unique_users})
-	mapping_item_id = pd.DataFrame({"mapped_item_id": np.arange(num_items), "item_id": unique_items})
-
-	matrix = pd.merge(left=matrix,
-					  right=mapping_user_id,
-					  how="inner",
-					  on="user_id")
-
-	matrix = pd.merge( left=matrix,
-					   right=mapping_item_id,
-					   how="inner",
-					   on="item_id")
-	return matrix
-
-
-def _normalize_matrix(matrix):
-	max = np.max(matrix.data)
-	min = np.min(matrix.data)
-
-	matrix.data = (matrix.data - min) / (max - min)
-
-	return matrix
-
 class DataLoaderSplit:
-	def __init__(self, dataset_dir: str = "data", test_split=0.2, val_split=0.1, urm='interactionScored.csv'):
+	def __init__(self, dataset_dir: str = "data", test_split=0.2, val_split=0.1, urm='URM_df.csv'):
 		self.n_users = n_users
 		self.n_items = n_items
 		self.n_item_non_preproc = n_item_non_preproc
 		self.n_type = n_type
+		self.w_0 = 0.2
+		self.w_1 = 0.8
 
-		# URM = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
-		# 				  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
-		URM_df = pd.read_csv(filepath_or_buffer='../data/' + urm,
-							 dtype={0: int, 1: int, 2: float}, engine='python')
-		URM_df.rename(columns={URM_df.columns[0]: 'user_id',
-							URM_df.columns[1]: 'item_id',
-							# URM_df.columns[2]: 'impressions',
-							URM_df.columns[2]: 'data'},
-				   inplace=True)
-		# URM_df['impressions'] = URM_df['impressions'].replace([np.nan], '0')
+		URM_df = pd.read_csv(filepath_or_buffer='../data/' + urm, dtype={0: int, 1: int, 2: float}, engine='python')
 
-		ICM_length_path = '../data/data_ICM_length.csv'
-		ICM_type_path = '../data/data_ICM_type.csv'
+		master_df = pd.read_csv('../data/Master_df.csv', engine='python')
+
+		ICM_length_path = '../data/Complete_ICM_length_OLD.csv'
+		ICM_type_path = '../data/Complete_ICM_type.csv'
 		ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 
-		# print('Start prep')
-		# URM_df = _preprocess_df(URM, ICM_length, ICM_type)
+		self.master_df = master_df
 
-		# URM = _preprocess_data(URM)
+		self.implicit_urm_1_df = pd.DataFrame(master_df.query('n_1 >= 1'), columns=['user_id', 'item_id', 'n_1']). \
+			rename(columns={'n_1': 'data'})
+
+		self.implicit_urm_0_df = pd.DataFrame(master_df.query('n_0 >= 1'), columns=['user_id', 'item_id', 'n_0']) \
+			.rename(columns={'n_0': 'data'})
+
+
+		# implicit matrix
+		# csv to coo sparse matrices
+		implicit_coo0 = coo_matrix((self.implicit_urm_0_df['data'],
+									(self.implicit_urm_0_df['user_id'], self.implicit_urm_0_df['item_id'])),
+								   shape=(n_users, n_items))
+
+		implicit_coo1 = coo_matrix((self.implicit_urm_1_df['data'],
+									(self.implicit_urm_1_df['user_id'], self.implicit_urm_1_df['item_id'])),
+								   shape=(n_users, n_items))
+
+		# coo to csr sparse matrices
+		self.implicit_csr0 = implicit_coo0.tocsr()
+		self.implicit_csr1 = implicit_coo1.tocsr()
+
+		# End implicit
+
 		self.URM_df = URM_df
-		# ICM_length = _preprocess_data(ICM_length)
-		# ICM_type = _preprocess_data(ICM_type)
 
 		# csv to coo sparse matrices
 		self.URM_coo = coo_matrix((URM_df['data'], (URM_df['user_id'], URM_df['item_id'])), shape=(n_users, n_items))
-
-		# self.URM_coo_training, self.URM_coo_validation, self.URM_coo_test = _dataset_splits(URM, test_split, val_split)
 
 		self.ICM_length_coo = coo_matrix((ICM_length['data'], (ICM_length['item_id'], ICM_length['feature_id'])),
 										 shape=(n_item_non_preproc, 1))
@@ -93,11 +69,6 @@ class DataLoaderSplit:
 		from sklearn.preprocessing import normalize
 		self.normalize_URM_csr = normalize(self.URM_csr, norm='l2', axis=1)
 
-		# self.normalize_URM_csr = _normalize_matrix(self.URM_csr)
-
-		# self.URM_csr_training = self.URM_coo_training.tocsr()
-		# self.URM_csr_validation = self.URM_coo_validation.tocsr()
-		# self.URM_csr_test = self.URM_coo_test.tocsr()
 
 		self.ICM_length_csr = self.ICM_length_coo.tocsr()
 		self.ICM_type_csr = self.ICM_type_coo.tocsr()
@@ -114,6 +85,8 @@ class DataLoaderSplit:
 
 		self.users_to_recommend = pd.read_csv('../' + dataset_dir + '/data_target_users_test.csv')['user_id'].values.tolist()
 
+		print('Finish Data Loading')
+
 	# COO Matrices
 	def get_coo_matrices(self):
 		return self.URM_coo, self.ICM_length_coo, self.ICM_type_coo
@@ -128,18 +101,43 @@ class DataLoaderSplit:
 	def get_csr_matrices(self):
 		return self.normalize_URM_csr, self.ICM_length_csr, self.ICM_type_csr
 
-	# def get_split_URM_csr_matrix(self):
-	# 	return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test
-	# 
-	# def get_all_csr_matrices(self):
-	# 	return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test, self.ICM_length_csr, self.ICM_type_csr
+	def get_ICMs(self):
+		return self.ICM_length_csr, self.ICM_type_csr
+
+	# Get implicit stuff
+	def get_distinct_csr_matrices(self):
+		return self.implicit_csr0, self.implicit_csr1
+
+	def get_csr0(self):
+		return self.implicit_csr0
+
+	def get_csr1(self):
+		return self.implicit_csr1
+
+	def get_separate_implicit_csr(self):
+		urm0 = self.implicit_csr0.copy()
+		urm1 = self.implicit_csr1.copy()
+
+		for i in range(len(self.implicit_csr0.data)):
+			urm0.data[i] = 1
+
+		for i in range(len(self.implicit_csr1.data)):
+			urm1.data[i] = 1
+
+		return urm0, urm1
+
+	def get_implicit_single_mixed_csr(self):
+		urm = self.implicit_csr0.copy()
+
+		for i in range(len(self.implicit_csr0.data)):
+			urm.data[i] = 1
+
+		return urm
+
 
 	# Other stuff
 	def get_users_to_recommend(self):
 		return self.users_to_recommend
-
-	def get_interactions_csr(self):
-		return self.URM_csr_training, self.URM_csr_validation, self.URM_csr_test
 
 	def get_users_under_n_interactions(self, n):
 		return np.argwhere(self.interactions_per_user < n)
@@ -148,10 +146,5 @@ class DataLoaderSplit:
 		return np.intersect1d(np.argwhere(self.interactions_per_user >= min),
 							  np.argwhere(self.interactions_per_user < max))
 
-	def get_new_split_csr_matrix(self, test_split=0.2, val_split=0.1):
-		URM_coo_training, URM_coo_validation, URM_coo_test = _dataset_splits(self.URM, test_split, val_split)
-
-		return URM_coo_training.tocsr(), URM_coo_validation.tocsr(), URM_coo_test.tocsr()
-
 	def get_URM_dataframe(self):
-		return self.URM
+		return self.URM_df
