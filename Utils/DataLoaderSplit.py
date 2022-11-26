@@ -5,7 +5,7 @@ from scipy.sparse import hstack
 from sklearn.model_selection import train_test_split
 
 n_users = 41629
-n_items = 27968
+n_items = 24507
 n_item_non_preproc = 27968
 n_type = 8
 
@@ -26,7 +26,8 @@ class DataLoaderSplit:
 		ICM_type_path = '../data/Complete_ICM_type.csv'
 		ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
-
+		ICM_length.drop(ICM_length.index[n_items:], axis=0, inplace=True)
+		ICM_type.drop(ICM_type.index[n_items:], axis=0, inplace=True)
 		self.master_df = master_df
 
 		self.implicit_urm_1_df = pd.DataFrame(master_df.query('n_1 >= 1'), columns=['user_id', 'item_id', 'n_1']). \
@@ -58,9 +59,9 @@ class DataLoaderSplit:
 		self.URM_coo = coo_matrix((URM_df['data'], (URM_df['user_id'], URM_df['item_id'])), shape=(n_users, n_items))
 
 		self.ICM_length_coo = coo_matrix((ICM_length['data'], (ICM_length['item_id'], ICM_length['feature_id'])),
-										 shape=(n_item_non_preproc, 1))
+										 shape=(n_items, 1))
 		self.ICM_type_coo = coo_matrix((ICM_type['data'], (ICM_type['item_id'], ICM_type['feature_id'])),
-									   shape=(n_item_non_preproc, n_type))
+									   shape=(n_items, n_type))
 
 		#coo to csr sparse matrices
 		self.URM_csr = self.URM_coo.tocsr()
@@ -148,3 +149,27 @@ class DataLoaderSplit:
 
 	def get_URM_dataframe(self):
 		return self.URM_df
+
+	def get_light_matrix(self):
+		scores = (self.master_df.n_0 * 0.6) + (0.4 * self.master_df.n_1)
+		urm = self.URM_df.copy()
+		urm['data'] = scores
+		urm['ep_len'] = self.master_df.ep_tot
+		urm['type'] = self.master_df.type
+
+		URM_coo = coo_matrix((urm['ep_len'], (urm['user_id'], urm['item_id'])), shape=(n_users, n_items))
+		URM_csr = URM_coo.tocsr()
+		from sklearn.preprocessing import normalize
+		urm_len = normalize(URM_csr, norm='l2', axis=1)
+
+		URM_coo = coo_matrix((urm['type'], (urm['user_id'], urm['item_id'])), shape=(n_users, n_items))
+		URM_csr = URM_coo.tocsr()
+		from sklearn.preprocessing import normalize
+		urm_type = normalize(URM_csr, norm='l2', axis=1)
+
+		import scipy.sparse as sps
+
+		urm = sps.hstack([self.normalize_URM_csr, urm_len, urm_type])
+		urm = sps.csr_matrix(urm)
+
+		return urm
