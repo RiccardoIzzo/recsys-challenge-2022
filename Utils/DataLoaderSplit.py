@@ -58,9 +58,9 @@ class DataLoaderSplit:
 		# csv to coo sparse matrices
 		self.URM_coo = coo_matrix((URM_df['data'], (URM_df['user_id'], URM_df['item_id'])), shape=(n_users, n_items))
 
-		self.ICM_length_coo = coo_matrix((ICM_length['data'], (ICM_length['item_id'], ICM_length['feature_id'])),
-										 shape=(n_items, 1))
-		self.ICM_type_coo = coo_matrix((ICM_type['data'], (ICM_type['item_id'], ICM_type['feature_id'])),
+		self.ICM_length_coo = coo_matrix((ICM_length['data'], (ICM_length['item_id'], ICM_length['data'])),
+										 shape=(n_items, 2001))
+		self.ICM_type_coo = coo_matrix((ICM_type['feature_id'], (ICM_type['item_id'], ICM_type['feature_id'])),
 									   shape=(n_items, n_type))
 
 		#coo to csr sparse matrices
@@ -70,9 +70,23 @@ class DataLoaderSplit:
 		from sklearn.preprocessing import normalize
 		self.normalize_URM_csr = normalize(self.URM_csr, norm='l2', axis=1)
 
+		# from sklearn.preprocessing import MinMaxScaler
+		# scaler = MinMaxScaler((0,5))
+		# data = scaler.fit_transform(self.URM_csr.data.reshape(-1,1))
+		# self.normalize_URM_csr = self.URM_csr
+		# self.normalize_URM_csr.data = data.reshape(1, -1)[0]
+		# for i in range(len(self.normalize_URM_csr.data)):
+		# 	if self.normalize_URM_csr.data[i] < 1:
+		# 		self.normalize_URM_csr.data[i] = 0
+
 
 		self.ICM_length_csr = self.ICM_length_coo.tocsr()
 		self.ICM_type_csr = self.ICM_type_coo.tocsr()
+
+		for i in range(len(self.ICM_length_csr.data)):
+			self.ICM_length_csr.data[i] = 1
+			self.ICM_type_csr.data[i] = 1
+
 
 		self.episodes_per_item = np.sum(self.ICM_length_csr, axis=1)
 		self.episodes_per_item_normalized = self.episodes_per_item / np.max(self.episodes_per_item)
@@ -104,6 +118,9 @@ class DataLoaderSplit:
 
 	def get_ICMs(self):
 		return self.ICM_length_csr, self.ICM_type_csr
+
+	def get_normalized_ICMs(self):
+		return self.norm_ICM_length_csr, self.norm_ICM_type_csr
 
 	# Get implicit stuff
 	def get_distinct_csr_matrices(self):
@@ -150,26 +167,14 @@ class DataLoaderSplit:
 	def get_URM_dataframe(self):
 		return self.URM_df
 
-	def get_light_matrix(self):
-		scores = (self.master_df.n_0 * 0.6) + (0.4 * self.master_df.n_1)
-		urm = self.URM_df.copy()
-		urm['data'] = scores
-		urm['ep_len'] = self.master_df.ep_tot
-		urm['type'] = self.master_df.type
+	def get_user_feature(self):
 
-		URM_coo = coo_matrix((urm['ep_len'], (urm['user_id'], urm['item_id'])), shape=(n_users, n_items))
-		URM_csr = URM_coo.tocsr()
-		from sklearn.preprocessing import normalize
-		urm_len = normalize(URM_csr, norm='l2', axis=1)
+		users = self.master_df.copy()
+		users = users.groupby(['user_id', 'avg_watched_ep', 'fav_type']).sum().reset_index()
+		users.drop(['item_id', 'ep_tot', 'type'], axis=1, inplace=True)
 
-		URM_coo = coo_matrix((urm['type'], (urm['user_id'], urm['item_id'])), shape=(n_users, n_items))
-		URM_csr = URM_coo.tocsr()
-		from sklearn.preprocessing import normalize
-		urm_type = normalize(URM_csr, norm='l2', axis=1)
-
+		users.drop(['user_id'], axis=1, inplace=True)
 		import scipy.sparse as sps
+		users_csr = sps.csr_matrix(users.to_numpy())
 
-		urm = sps.hstack([self.normalize_URM_csr, urm_len, urm_type])
-		urm = sps.csr_matrix(urm)
-
-		return urm
+		return users_csr, users
