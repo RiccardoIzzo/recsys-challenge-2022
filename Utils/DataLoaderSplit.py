@@ -180,19 +180,26 @@ class DataLoaderSplit:
 		n_0_coo = sps.coo_matrix((users['n_0'], (users['user_id'], users['n_0'])), shape=(n_users, int(np.max(users['n_0'])) + 1))
 		n_1_coo = sps.coo_matrix((users['n_1'], (users['user_id'], users['n_1'])), shape=(n_users, int(np.max(users['n_1'])) + 1))
 
-		for i in range(len(avg_coo.data)):
-			avg_coo.data[i] = 1
-		for i in range(len(fav_coo.data)):
-			fav_coo.data[i] = 1
-		for i in range(len(n_0_coo.data)):
-			n_0_coo.data[i] = 1
-		for i in range(len(n_1_coo.data)):
-			n_1_coo.data[i] = 1
+		# import pandas as pd
+		# master_df = pd.read_csv('../data/Master_df.csv', engine='python')
 
 		avg_csr = avg_coo.tocsr()
 		fav_csr = fav_coo.tocsr()
-		n_0_csr = fav_coo.tocsr()
-		n_1_csr = fav_coo.tocsr()
+		n_0_csr = n_0_coo.tocsr()
+		n_1_csr = n_1_coo.tocsr()
+
+		fav_csr.data = fav_csr.data.astype(np.float32)
+		n_0_csr.data = n_0_csr.data.astype(np.float32)
+		n_1_csr.data = n_1_csr.data.astype(np.float32)
+
+		for i in range(len(avg_csr.data)):
+			avg_csr.data[i] = 0.25
+		for i in range(len(fav_csr.data)):
+			fav_csr.data[i] = 0.25
+		for i in range(len(n_0_csr.data)):
+			n_0_csr.data[i] = 0.3
+		for i in range(len(n_1_csr.data)):
+			n_1_csr.data[i] = 0.2
 
 		users_csr = sps.hstack([n_0_csr, n_1_csr, avg_csr, fav_csr])
 
@@ -206,5 +213,35 @@ class DataLoaderSplit:
 		# icms = icms.div(icms.sum(axis=1), axis=0)
 		icms_csr = sps.hstack([self.ICM_length_csr, self.ICM_type_csr])
 
-		return icms_csr, icms
+		return sps.csr_matrix(icms_csr), icms
+
+	def create_feature_matrices(self):
+		ifm, idf = self.get_item_feature()
+		ufm, udf = self.get_user_feature()
+
+		id_mat = np.identity(n_items)
+		id = sps.csr_matrix(id_mat)
+		ifm_final = sps.hstack([id, ifm])
+
+		id_mat_users = np.identity(n_users)
+		id_users = sps.csr_matrix(id_mat_users)
+		ufm_final = sps.hstack([id_users, ufm])
+
+		return ufm_final, ifm_final
+
+	def create_matrix_light(self):
+		from sklearn.preprocessing import OneHotEncoder
+
+		master = self.master_df.copy()
+		onehot_encoder = OneHotEncoder(sparse=True)
+
+		users_encoded = onehot_encoder.fit_transform(master['user_id'].values.reshape(-1, 1))
+		item_encoded = onehot_encoder.fit_transform(master['item_id'].values.reshape(-1, 1))
+
+		m = sps.csr_matrix(sps.hstack([users_encoded, item_encoded]))
+
+		return m
+
+
+
 
