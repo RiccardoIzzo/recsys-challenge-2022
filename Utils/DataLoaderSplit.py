@@ -3,6 +3,7 @@ from scipy.sparse import coo_matrix
 import numpy as np
 from scipy.sparse import hstack
 from sklearn.model_selection import train_test_split
+import scipy.sparse as sps
 
 n_users = 41629
 n_items = 24507
@@ -28,6 +29,8 @@ class DataLoaderSplit:
 		ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 		ICM_length.drop(ICM_length.index[n_items:], axis=0, inplace=True)
 		ICM_type.drop(ICM_type.index[n_items:], axis=0, inplace=True)
+		self.icm_length = ICM_length
+		self.icm_type = ICM_type
 		self.master_df = master_df
 
 		self.implicit_urm_1_df = pd.DataFrame(master_df.query('n_1 >= 1'), columns=['user_id', 'item_id', 'n_1']). \
@@ -70,6 +73,7 @@ class DataLoaderSplit:
 		from sklearn.preprocessing import normalize
 		self.normalize_URM_csr = normalize(self.URM_csr, norm='l2', axis=1)
 
+		# self.normalize_URM_csr = self.URM_csr
 		# from sklearn.preprocessing import MinMaxScaler
 		# scaler = MinMaxScaler((0,5))
 		# data = scaler.fit_transform(self.URM_csr.data.reshape(-1,1))
@@ -118,9 +122,6 @@ class DataLoaderSplit:
 
 	def get_ICMs(self):
 		return self.ICM_length_csr, self.ICM_type_csr
-
-	def get_normalized_ICMs(self):
-		return self.norm_ICM_length_csr, self.norm_ICM_type_csr
 
 	# Get implicit stuff
 	def get_distinct_csr_matrices(self):
@@ -172,9 +173,38 @@ class DataLoaderSplit:
 		users = self.master_df.copy()
 		users = users.groupby(['user_id', 'avg_watched_ep', 'fav_type']).sum().reset_index()
 		users.drop(['item_id', 'ep_tot', 'type'], axis=1, inplace=True)
+		users['avg_watched_ep'] = users['avg_watched_ep'].apply(lambda x: np.round(x))
 
-		users.drop(['user_id'], axis=1, inplace=True)
-		import scipy.sparse as sps
-		users_csr = sps.csr_matrix(users.to_numpy())
+		avg_coo = sps.coo_matrix((users['avg_watched_ep'], (users['user_id'], users['avg_watched_ep'])), shape=(n_users, int(np.max(users['avg_watched_ep'])) + 1))
+		fav_coo = sps.coo_matrix((users['fav_type'], (users['user_id'], users['fav_type'])), shape=(n_users, int(np.max(users['fav_type'])) + 1))
+		n_0_coo = sps.coo_matrix((users['n_0'], (users['user_id'], users['n_0'])), shape=(n_users, int(np.max(users['n_0'])) + 1))
+		n_1_coo = sps.coo_matrix((users['n_1'], (users['user_id'], users['n_1'])), shape=(n_users, int(np.max(users['n_1'])) + 1))
+
+		for i in range(len(avg_coo.data)):
+			avg_coo.data[i] = 1
+		for i in range(len(fav_coo.data)):
+			fav_coo.data[i] = 1
+		for i in range(len(n_0_coo.data)):
+			n_0_coo.data[i] = 1
+		for i in range(len(n_1_coo.data)):
+			n_1_coo.data[i] = 1
+
+		avg_csr = avg_coo.tocsr()
+		fav_csr = fav_coo.tocsr()
+		n_0_csr = fav_coo.tocsr()
+		n_1_csr = fav_coo.tocsr()
+
+		users_csr = sps.hstack([n_0_csr, n_1_csr, avg_csr, fav_csr])
 
 		return users_csr, users
+
+	def get_item_feature(self):
+		icms = pd.concat([self.icm_length.drop('feature_id', axis=1), self.icm_type.drop(['data', 'item_id'], axis=1)],
+						 axis=1, join="inner")
+
+		icms.drop(['item_id'], axis=1, inplace=True)
+		# icms = icms.div(icms.sum(axis=1), axis=0)
+		icms_csr = sps.hstack([self.ICM_length_csr, self.ICM_type_csr])
+
+		return icms_csr, icms
+
