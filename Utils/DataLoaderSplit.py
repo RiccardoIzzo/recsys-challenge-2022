@@ -146,9 +146,9 @@ class DataLoaderSplit:
 		return urm0, urm1
 
 	def get_implicit_single_mixed_csr(self):
-		urm = self.implicit_csr0.copy()
+		urm = self.URM_csr.copy()
 
-		for i in range(len(self.implicit_csr0.data)):
+		for i in range(len(self.URM_csr.data)):
 			urm.data[i] = 1
 
 		return urm
