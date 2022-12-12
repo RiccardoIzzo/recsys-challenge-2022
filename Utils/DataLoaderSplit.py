@@ -21,7 +21,7 @@ class DataLoaderSplit:
 
 		URM_df = pd.read_csv(filepath_or_buffer='../data/' + urm, dtype={0: int, 1: int, 2: float}, engine='python')
 
-		master_df = pd.read_csv('../data/Master_df.csv', engine='python')
+		master_df = pd.read_csv('../Master_df.csv', engine='python')
 
 		ICM_length_path = '../data/Complete_ICM_length_OLD.csv'
 		ICM_type_path = '../data/Complete_ICM_type.csv'
@@ -164,6 +164,43 @@ class DataLoaderSplit:
 	def get_users_between_interactions(self, min, max):
 		return np.intersect1d(np.argwhere(self.interactions_per_user >= min),
 							  np.argwhere(self.interactions_per_user < max))
+
+	def get_matrix_under_n_interaction(self, n, implicit=True):
+		pd.set_option('mode.chained_assignment', None)
+		urm1 = self.URM_df.copy()
+		urm2 = self.URM_df.copy()
+
+		urm1['score'] = self.master_df['new']
+		urm2['score'] = self.master_df['new']
+
+		from tqdm import trange
+		for i in trange(len(urm1['score'])):
+			if urm1['score'][i] < n:
+				urm1['score'][i] = 0
+				urm2['score'][i] = self.URM_df['data'][i]
+			else:
+				urm1['score'][i] = self.URM_df['data'][i]
+				urm2['score'][i] = 0
+
+		coo1 = sps.coo_matrix((urm1['score'], (urm1['user_id'], urm1['item_id'])), shape=(n_users, n_items))
+		coo2 = sps.coo_matrix((urm2['score'], (urm2['user_id'], urm2['item_id'])), shape=(n_users, n_items))
+		csr1 = coo1.tocsr()
+		csr2 = coo2.tocsr()
+
+		if implicit:
+			for i in range(len(csr2.data)):
+				csr1.data[i] = 1
+				csr2.data[i] = 1
+			normalize_URM_csr1 = csr1
+			normalize_URM_csr2 = csr2
+		else:
+			from sklearn.preprocessing import normalize
+			normalize_URM_csr1 = normalize(csr1, norm='l2', axis=1)
+			normalize_URM_csr2 = normalize(csr2, norm='l2', axis=1)
+
+		pd.reset_option("mode.chained_assignment")
+		print('ok')
+		return normalize_URM_csr1, normalize_URM_csr2
 
 	def get_URM_dataframe(self):
 		return self.URM_df
