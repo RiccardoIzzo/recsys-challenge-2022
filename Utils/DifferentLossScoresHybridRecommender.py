@@ -42,5 +42,7 @@ class DifferentLossScoresHybridRecommender(BaseRecommender):
 
         item_weights = item_weights_1 / norm_item_weights_1 * self.alpha + item_weights_2 / norm_item_weights_2 * (
                 1 - self.alpha)
+        #
+        # item_weights = item_weights_1 / norm_item_weights_1 + item_weights_2 / norm_item_weights_2
 
         return item_weights
