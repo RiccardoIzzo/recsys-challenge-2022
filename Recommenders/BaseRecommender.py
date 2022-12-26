@@ -212,7 +212,8 @@ class BaseRecommender(object):
 
 
     def save_model(self, folder_path, file_name = None):
-        raise NotImplementedError("BaseRecommender: save_model not implemented")
+        # raise NotImplementedError("BaseRecommender: save_model not implemented")
+        return
 
 
 
