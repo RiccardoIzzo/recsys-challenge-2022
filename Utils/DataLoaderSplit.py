@@ -160,8 +160,7 @@ class DataLoaderSplit:
 
 	def get_users_under_n_interactions(self, n):
 		master = self.master_df.copy().groupby(['user_id', 'inter']).sum().reset_index()
-		user_below = master['user_id'] * (master['inter'] < n)
-		user_above = master['user_id'] * (master['inter'] >= n)
+		user_above = (master['user_id'] + 1) * (master['inter'] >= n)
 		user_up = []
 		user_down = []
 
