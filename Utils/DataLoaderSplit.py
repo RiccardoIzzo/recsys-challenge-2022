@@ -159,7 +159,19 @@ class DataLoaderSplit:
 		return self.users_to_recommend
 
 	def get_users_under_n_interactions(self, n):
-		return np.argwhere(self.interactions_per_user < n)
+		master = self.master_df.copy().groupby(['user_id', 'inter']).sum().reset_index()
+		user_below = master['user_id'] * (master['inter'] < n)
+		user_above = master['user_id'] * (master['inter'] >= n)
+		user_up = []
+		user_down = []
+
+		for i in range(len(user_above)):
+			if user_above[i] != 0:
+				user_up.append(i)
+			else:
+				user_down.append(i)
+
+		return user_down, user_up
 
 	def get_users_between_interactions(self, min, max):
 		return np.intersect1d(np.argwhere(self.interactions_per_user >= min),
@@ -195,7 +207,6 @@ class DataLoaderSplit:
 			normalize_URM_csr2 = normalize(csr2, norm='l2', axis=1)
 
 		pd.reset_option("mode.chained_assignment")
-		print('ok')
 		# less interaction and most interaction
 		return normalize_URM_csr1, normalize_URM_csr2
 
