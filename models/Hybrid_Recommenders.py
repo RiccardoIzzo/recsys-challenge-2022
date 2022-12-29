@@ -15,7 +15,7 @@ from skopt.space import Integer, Categorical, Real
 
 def main():
     # FOR GRID SEARCH
-    # dataReader = DataLoaderSplit(urm='LastURM.csv')
+    # dataReader = DataLoaderSplit(urm='newURM.csv')
     # URM_all, ICM_length, ICM_type = dataReader.get_csr_matrices()
     # dataReader = DataLoaderSplit(urm='newURM.csv')
     # URM_all = dataReader.get_implicit_single_mixed_csr()
@@ -96,17 +96,6 @@ def main():
     result_df, _ = evaluator_validation.evaluateRecommender(ItemKNNCF_tversky)
     print("{} FINAL MAP: {}".format(ItemKNNCF_tversky.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
 
-    itemknncf_asymmetric_tversky = DifferentLossScoresHybridRecommender(URM_train, ItemKNNCF_asymmetric,
-                                                                        ItemKNNCF_tversky)
-    itemknncf_asymmetric_tversky.fit(1, alpha=0.6384198928672995)
-
-    # UserKNNCFRecommender
-    from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
-    best_hyperparams_UserKNNCF = {'topK': 759, 'shrink': 0, 'similarity': 'cosine', 'normalize': True,
-                                  'feature_weighting': 'TF-IDF'}
-    userknncf_cosine = UserKNNCFRecommender(URM_train=URM_train)
-    userknncf_cosine.fit(**best_hyperparams_UserKNNCF)
-
     # SLIMElasticNetRecommender
     from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
     # from Recommenders.SLIM.SLIMElasticNetRecommender import MultiThreadSLIM_SLIMElasticNetRecommender
@@ -128,34 +117,15 @@ def main():
     # result_df, _ = evaluator_validation.evaluateRecommender(EASE_R)
     # print("{} FINAL MAP: {}".format(EASE_R.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
 
-    # SLIM_BPR_Cython
-    from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
-    best_hyperparams_SLIM_BPR_Cython = {'topK': 89, 'epochs': 300, 'symmetric': True, 'sgd_mode': 'adagrad',
-                                        'lambda_i': 0.001, 'lambda_j': 9.773899284052082e-05,
-                                        'learning_rate': 0.03500210788755942}
-    SLIM_BPR_Cython = SLIM_BPR_Cython(URM_train)
-    SLIM_BPR_Cython.fit(**best_hyperparams_SLIM_BPR_Cython)
-    result_df, _ = evaluator_validation.evaluateRecommender(SLIM_BPR_Cython)
-    print("{} FINAL MAP: {}".format(SLIM_BPR_Cython.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
-
     # IALS
     from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
     best_hyperparams_IALS = {'num_factors': 193, 'epochs': 80, 'confidence_scaling': 'log', 'alpha': 38.524701045378585,
                              'epsilon': 0.11161267696066449, 'reg': 0.00016885775864831462}
     IALS = IALSRecommender(URM_train=URM_train)
     IALS.load_model(folder_path="../trained_models/", file_name=IALS.RECOMMENDER_NAME + "_best_80")
-    # IALS.fit(**best_hyperparams_IALS)
-    # result_df, _ = evaluator_validation.evaluateRecommender(IALS)
-    # print("{} FINAL MAP: {}".format(IALS.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
-
-    # P3alpha
-    from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
-    best_hyperparams_P3alpha = {'topK': 213, 'alpha': 0.7806594643806142, 'normalize_similarity': True,
-                                'implicit': True}
-    P3alpha = P3alphaRecommender(URM_train=URM_train)
-    P3alpha.fit(**best_hyperparams_P3alpha)
-    result_df, _ = evaluator_validation.evaluateRecommender(P3alpha)
-    print("{} FINAL MAP: {}".format(P3alpha.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
+    IALS.fit(**best_hyperparams_IALS)
+    result_df, _ = evaluator_validation.evaluateRecommender(IALS)
+    print("{} FINAL MAP: {}".format(IALS.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
 
     # RP3beta
     from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
@@ -178,6 +148,32 @@ def main():
     # MultVAE.fit(**best_hyperparams_MultVAE)
     # result_df, _ = evaluator_validation.evaluateRecommender(MultVAE)
     # print("{} FINAL MAP: {}".format(MultVAE.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
+
+    # SLIM_BPR_Cython
+    from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
+    best_hyperparams_SLIM_BPR_Cython = {'topK': 89, 'epochs': 300, 'symmetric': True, 'sgd_mode': 'adagrad',
+                                        'lambda_i': 0.001, 'lambda_j': 9.773899284052082e-05,
+                                        'learning_rate': 0.03500210788755942}
+    SLIM_BPR_Cython = SLIM_BPR_Cython(URM_train)
+    SLIM_BPR_Cython.fit(**best_hyperparams_SLIM_BPR_Cython)
+    result_df, _ = evaluator_validation.evaluateRecommender(SLIM_BPR_Cython)
+    print("{} FINAL MAP: {}".format(SLIM_BPR_Cython.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
+
+    # UserKNNCFRecommender
+    from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
+    best_hyperparams_UserKNNCF = {'topK': 759, 'shrink': 0, 'similarity': 'cosine', 'normalize': True,
+                                  'feature_weighting': 'TF-IDF'}
+    userknncf_cosine = UserKNNCFRecommender(URM_train=URM_train)
+    userknncf_cosine.fit(**best_hyperparams_UserKNNCF)
+
+    # P3alpha
+    from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
+    best_hyperparams_P3alpha = {'topK': 213, 'alpha': 0.7806594643806142, 'normalize_similarity': True,
+                                'implicit': True}
+    P3alpha = P3alphaRecommender(URM_train=URM_train)
+    P3alpha.fit(**best_hyperparams_P3alpha)
+    result_df, _ = evaluator_validation.evaluateRecommender(P3alpha)
+    print("{} FINAL MAP: {}".format(P3alpha.RECOMMENDER_NAME, result_df.loc[10]["MAP"]))
 
     class ScoresHybridRecommender_3(BaseRecommender):
         RECOMMENDER_NAME = "ScoresHybridRecommender_3"
@@ -338,6 +334,24 @@ def main():
 
         def load_model(self, folder_path, file_name=None):
             return
+
+    slim_vae = DifferentLossScoresHybridRecommender(URM_train, SLIMElasticNet, MultVAE)
+    slim_vae.fit(1, 0.35189378875691635)
+
+    itemknncf_asymmetric_tversky = DifferentLossScoresHybridRecommender(URM_train, ItemKNNCF_asymmetric, ItemKNNCF_tversky)
+    itemknncf_asymmetric_tversky.fit(1, 0.6384198928672995)
+
+    slim_vae_itemknncf = DifferentLossScoresHybridRecommender(URM_train, slim_vae, itemknncf_asymmetric_tversky)
+    slim_vae_itemknncf.fit(1, 0.9418377596234007)
+
+    slim_vae_itemknncf_ials = DifferentLossScoresHybridRecommender(URM_train, slim_vae_itemknncf, IALS)
+    slim_vae_itemknncf_ials.fit(np.inf, 0.9381147385789094)
+
+    slim_vae_itemknncf_ials_rp3 = DifferentLossScoresHybridRecommender(URM_train, slim_vae_itemknncf_ials, RP3beta)
+    slim_vae_itemknncf_ials_rp3.fit(1, 0.9559876377330556)
+
+    slim_vae_itemknncf_ials_rp3_ease = DifferentLossScoresHybridRecommender(URM_train, slim_vae_itemknncf_ials_rp3, EASE_R)
+    slim_vae_itemknncf_ials_rp3_ease.fit(1, 0.9936156064497043)
 
     # GRID SEARCH (norm, alpha)
     recommender_object = DifferentLossScoresHybridRecommender(URM_train, SLIMElasticNet, MultVAE)
