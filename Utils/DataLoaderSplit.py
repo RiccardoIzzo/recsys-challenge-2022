@@ -184,7 +184,7 @@ class DataLoaderSplit:
 		urm1['score'] = self.master_df['inter']
 		urm2['score'] = self.master_df['inter']
 
-		urm1['value'] = urm1.data * (urm1.score < n)
+		urm1['value'] = urm1.data * (urm1.score <= n)
 		urm2['value'] = urm2.data * (urm2.score > n)
 
 		coo1 = sps.coo_matrix((urm1['value'], (urm1['user_id'], urm1['item_id'])), shape=(n_users, n_items))
@@ -208,6 +208,81 @@ class DataLoaderSplit:
 		pd.reset_option("mode.chained_assignment")
 		# less interaction and most interaction
 		return normalize_URM_csr1, normalize_URM_csr2
+
+	def get_user_outside_n_m_interaction(self, n, m):
+		urm1 = self.URM_df.copy()
+
+		master11 = self.master_df.copy().groupby(['user_id', 'inter']).sum().reset_index()
+
+		urm1['score1'] = self.master_df['inter']
+		urm1['score2'] = self.master_df['inter']
+
+		urm1['value1'] = urm1.data * (urm1.score1 >= n)
+		urm1['value2'] = urm1.data * (urm1.score2 < m)
+		urm1['value'] = urm1.data * (urm1.value1 * urm1.value2 != 0)
+
+		urm11 = (urm1.groupby(['user_id']).sum().reset_index())
+		list_user_inside = (master11['user_id'] * (urm11.value != 0)).tolist()
+		list_user_outside = (master11['user_id'] * (urm11.value == 0)).tolist()
+
+		list_user_inside = [i for i in list_user_inside if i != 0]
+
+		list_user_outside = [i for i in list_user_outside if i != 0]
+		if n <= 157 < m:
+			list_user_inside.insert(0, 0)
+		else:
+			list_user_outside.insert(0, 0)
+
+		return list_user_outside, list_user_inside
+
+	def get_matrix_between_n_m_interaction(self, n, m, implicit=True):
+		pd.set_option('mode.chained_assignment', None)
+
+		urm1 = self.URM_df.copy()
+		urm2 = self.URM_df.copy()
+
+		master11 = self.master_df.copy().groupby(['user_id', 'inter']).sum().reset_index()
+
+		urm1['score1'] = self.master_df['inter']
+		urm1['score2'] = self.master_df['inter']
+		urm2['score1'] = self.master_df['inter']
+		urm2['score2'] = self.master_df['inter']
+
+		urm1['value1'] = urm1.data * (urm1.score1 >= n)
+		urm1['value2'] = urm1.data * (urm1.score2 < m)
+		urm1['value'] = urm1.data * (urm1.value1 * urm1.value2 != 0)
+
+		urm11 = (urm1.groupby(['user_id']).sum().reset_index())
+		list_user_below = (master11['user_id'] * (urm11.value != 0)).tolist()
+		list_user_below = [i for i in list_user_below if i != 0]
+		if urm1['value'][0] != 0:
+			list_user_below.insert(0, 0)
+
+		urm2['value1'] = urm2.data * (urm2.score1 < n)
+		urm2['value2'] = urm2.data * (urm2.score2 >= m)
+		urm2['value'] = urm2.data * (urm2.value1 + urm2.value2 != 0)
+
+		coo1 = sps.coo_matrix((urm1['value'], (urm1['user_id'], urm1['item_id'])), shape=(n_users, n_items))
+		coo2 = sps.coo_matrix((urm2['value'], (urm2['user_id'], urm2['item_id'])), shape=(n_users, n_items))
+		csr1 = coo1.tocsr()
+		csr2 = coo2.tocsr()
+
+		if implicit:
+			for i in range(len(csr2.data)):
+				if csr1.data[i] != 0:
+					csr1.data[i] = 1
+				else:
+					csr2.data[i] = 1
+			normalize_URM_csr1 = csr1
+			normalize_URM_csr2 = csr2
+		else:
+			from sklearn.preprocessing import normalize
+			normalize_URM_csr1 = normalize(csr1, norm='l2', axis=1)
+			normalize_URM_csr2 = normalize(csr2, norm='l2', axis=1)
+
+		pd.reset_option("mode.chained_assignment")
+		# less interaction and most interaction
+		return normalize_URM_csr1, normalize_URM_csr2, list_user_below
 
 	def get_URM_dataframe(self):
 		return self.URM_df
@@ -286,6 +361,17 @@ class DataLoaderSplit:
 
 		return m
 
+	def plot_map_graph(self, names, maps):
+		import matplotlib.pyplot as plt
+
+		_ = plt.figure(figsize=(16, 9))
+		for i in range(len(names)):
+			results = maps[i]
+			plt.scatter(x=np.arange(0, len(results)), y=results, label=names[i])
+		plt.ylabel('MAP')
+		plt.xlabel('User Group')
+		plt.legend()
+		plt.show()
 
 
 
