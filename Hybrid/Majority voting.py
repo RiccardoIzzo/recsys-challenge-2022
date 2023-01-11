@@ -43,11 +43,8 @@ def recommend(recommenders, userID):
 	items = []
 
 	rec1 = recommenders[0].recommend(userID, 10)
-	print(rec1)
 	rec2 = recommenders[1].recommend(userID, 10)
-	print(rec2)
 	rec3 = recommenders[2].recommend(userID, 10)
-	print(rec3)
 
 	for i in range(len(rec1)):
 		if rec1[i] == rec2[i]:
