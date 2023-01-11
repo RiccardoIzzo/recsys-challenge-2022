@@ -4,6 +4,22 @@ from Data_manager.split_functions.split_train_validation_random_holdout import \
 	split_train_in_two_percentage_global_sample
 import scipy.sparse as sps
 import numpy as np
+import pandas as pd
+
+def check(sub):
+	items = []
+	users = len(sub)
+
+	for i in range(users):
+		items.append([int(num) for num in sub['item_list'][i].split()])
+
+	c = 0
+	for i in range(users):
+		if len(items[i]) != len(set(items[i])):
+			print(i)
+			c += 1
+	print('Number of duplicates: ', c)
+
 
 urm_train_scored = sps.load_npz('../LoadModels80/URM_train_new.npz')
 urm_train = sps.load_npz('../LoadModels80/URM_train_imp_new.npz')
@@ -45,13 +61,16 @@ def recommend(recommenders, userID):
 	rec1 = recommenders[0].recommend(userID, 10)
 	rec2 = recommenders[1].recommend(userID, 10)
 	rec3 = recommenders[2].recommend(userID, 10)
+	print(rec1)
+	print(rec2)
+	print(rec3)
 
 	for i in range(len(rec1)):
-		if rec1[i] == rec2[i]:
+		if rec1[i] == rec2[i] and rec1[i] not in items:
 			items.append(rec1[i])
-		elif rec2[i] == rec3[i]:
+		elif rec2[i] == rec3[i] and rec2[i] not in items:
 			items.append(rec2[i])
-		elif rec1[i] == rec3[i]:
+		elif rec1[i] == rec3[i] and rec3[i] not in items:
 			items.append(rec3[i])
 		else:
 			if rec1[i] not in items:
@@ -61,9 +80,7 @@ def recommend(recommenders, userID):
 			elif rec3[i] not in items:
 				items.append(rec3[i])
 			else:
-				items.append(np.mean([rec1[i], rec2[i], rec3[i]]).round())
-
-
+				items.append(int(np.mean([rec1[i], rec2[i], rec3[i]]).round()))
 	return items
 
 
@@ -82,6 +99,8 @@ def write_submission(recommender: list):
 			writer.writerow([userID, str(np.array(recommend(recommender, userID)))[1:-1]])
 
 	print("Printing finished")
+	return "../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv"
 
 
-write_submission(rec)
+sub = write_submission(rec)
+check(sub)
