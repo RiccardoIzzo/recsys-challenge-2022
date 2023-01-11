@@ -57,7 +57,16 @@ def recommend(recommenders, userID):
 		elif rec1[i] == rec3[i]:
 			items.append(rec3[i])
 		else:
-			items.append(rec1[i])
+			if rec1[i] not in items:
+				items.append(rec1[i])
+			elif rec2[i] not in items:
+				items.append(rec2[i])
+			elif rec3[i] not in items:
+				items.append(rec3[i])
+			else:
+				items.append(np.mean([rec1[i], rec2[i], rec3[i]]).round())
+
+
 	return items
 
 
