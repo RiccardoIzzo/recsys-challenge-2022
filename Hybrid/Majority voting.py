@@ -7,11 +7,12 @@ import numpy as np
 import pandas as pd
 
 def check(sub):
+	sub1 = pd.read_csv(sub)
 	items = []
-	users = len(sub)
+	users = len(sub1)
 
 	for i in range(users):
-		items.append([int(num) for num in sub['item_list'][i].split()])
+		items.append([int(num) for num in sub1['item_list'][i].split()])
 
 	c = 0
 	for i in range(users):
@@ -53,17 +54,18 @@ import pandas as pd
 import datetime
 import csv
 from tqdm import tqdm
-
+x = 0
 
 def recommend(recommenders, userID):
 	items = []
+	global x
 
 	rec1 = recommenders[0].recommend(userID, 10)
 	rec2 = recommenders[1].recommend(userID, 10)
 	rec3 = recommenders[2].recommend(userID, 10)
-	print(rec1)
-	print(rec2)
-	print(rec3)
+	# print(rec1)
+	# print(rec2)
+	# print(rec3)
 
 	for i in range(len(rec1)):
 		if rec1[i] == rec2[i] and rec1[i] not in items:
@@ -81,6 +83,7 @@ def recommend(recommenders, userID):
 				items.append(rec3[i])
 			else:
 				items.append(int(np.mean([rec1[i], rec2[i], rec3[i]]).round()))
+				x += 1
 	return items
 
 
@@ -90,8 +93,9 @@ def write_submission(recommender: list):
 
 	targetUsers = targetUsers.tolist()
 
+	name = "../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv"
 
-	with open("../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv", 'w', newline='') as file:
+	with open(name, 'w', newline='') as file:
 		writer = csv.writer(file)
 		writer.writerow(['user_id', 'item_list'])
 
@@ -99,8 +103,9 @@ def write_submission(recommender: list):
 			writer.writerow([userID, str(np.array(recommend(recommender, userID)))[1:-1]])
 
 	print("Printing finished")
-	return "../submissions/submission_" + datetime.datetime.now().strftime("%H_%M") + ".csv"
+	return name
 
 
 sub = write_submission(rec)
 check(sub)
+print('Worst case number is: ', x)
