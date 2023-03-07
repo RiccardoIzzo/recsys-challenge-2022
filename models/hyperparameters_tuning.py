@@ -32,7 +32,7 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import MultiThreadSLIM_SLIMElas
 
 def main():
     dataReader = DataLoaderSplit(urm='newURM.csv')
-    # URM_all, ICM_length, ICM_type = dataReader.get_csr_matrices()
+    URM_all, ICM_length, ICM_type = dataReader.get_csr_matrices()
     URM_all = dataReader.get_implicit_single_mixed_csr()
     URM_train_validation, URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
     URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_train_validation, train_percentage=0.8)
@@ -48,64 +48,64 @@ def main():
     ### CHOOSE RECOMMENDER HERE ###
     recommender_class = MultVAERecommender_OptimizerMask
 
-    # hyperparameterSearch = SearchBayesianSkopt(recommender_class,
-    #                                            evaluator_validation=evaluator_validation,
-    #                                            evaluator_test=evaluator_test)
-    #
+    hyperparameterSearch = SearchBayesianSkopt(recommender_class,
+                                               evaluator_validation=evaluator_validation,
+                                               evaluator_test=evaluator_test)
+
     n_cases = 50
     n_random_starts = int(n_cases * 0.3)
     metric_to_optimize = "MAP"
     cutoff_to_optimize = 10
 
-    # similarity_type_list=['cosine', 'jaccard', "asymmetric", "dice", "tversky", "tanimoto"],
+    similarity_type_list=['cosine', 'jaccard', "asymmetric", "dice", "tversky", "tanimoto"],
 
-    # hyperparameters_range_dictionary = {
-    #     "epochs": Categorical([500]),
-    #     "learning_rate": Real(low=1e-6, high=1e-2, prior="log-uniform"),
-    #     "l2_reg": Real(low=1e-6, high=1e-2, prior="log-uniform"),
-    #     "dropout": Real(low=0., high=0.8, prior="uniform"),
-    #     "total_anneal_steps": Integer(100000, 600000),
-    #     "anneal_cap": Real(low=0., high=0.6, prior="uniform"),
-    #     "batch_size": Categorical([128, 256, 512, 1024]),
+    hyperparameters_range_dictionary = {
+        "epochs": Categorical([500]),
+        "learning_rate": Real(low=1e-6, high=1e-2, prior="log-uniform"),
+        "l2_reg": Real(low=1e-6, high=1e-2, prior="log-uniform"),
+        "dropout": Real(low=0., high=0.8, prior="uniform"),
+        "total_anneal_steps": Integer(100000, 600000),
+        "anneal_cap": Real(low=0., high=0.6, prior="uniform"),
+        "batch_size": Categorical([128, 256, 512, 1024]),
+
+        #"encoding_size": Integer(1, min(512, n_items - 1)),
+        "next_layer_size_multiplier": Integer(2, 10),
+        "max_n_hidden_layers": Integer(1, 4),
+
+        # Constrain the model to a maximum number of parameters so that its size does not exceed 7 GB
+        # Estimate size by considering each parameter uses float32
+        "max_parameters": Categorical([7 * 1e9 * 8 / 32]),
+    }
+
+    recommender_input_args = SearchInputRecommenderArgs(
+        CONSTRUCTOR_POSITIONAL_ARGS=[URM_train],  # For a CBF model simply put [URM_train, ICM_train]
+        CONSTRUCTOR_KEYWORD_ARGS={},
+        FIT_POSITIONAL_ARGS=[],
+        FIT_KEYWORD_ARGS={},
+        EARLYSTOPPING_KEYWORD_ARGS={},
+    )
+
+    recommender_input_args_last_test = SearchInputRecommenderArgs(
+        CONSTRUCTOR_POSITIONAL_ARGS=[URM_train_validation],
+        # For a CBF model simply put [URM_train_validation, ICM_train]
+        CONSTRUCTOR_KEYWORD_ARGS={},
+        FIT_POSITIONAL_ARGS=[],
+        FIT_KEYWORD_ARGS={},
+        EARLYSTOPPING_KEYWORD_ARGS={},
+    )
     #
-    #     #"encoding_size": Integer(1, min(512, n_items - 1)),
-    #     "next_layer_size_multiplier": Integer(2, 10),
-    #     "max_n_hidden_layers": Integer(1, 4),
-    #
-    #     # Constrain the model to a maximum number of parameters so that its size does not exceed 7 GB
-    #     # Estimate size by considering each parameter uses float32
-    #     "max_parameters": Categorical([7 * 1e9 * 8 / 32]),
-    # }
-    #
-    # recommender_input_args = SearchInputRecommenderArgs(
-    #     CONSTRUCTOR_POSITIONAL_ARGS=[URM_train],  # For a CBF model simply put [URM_train, ICM_train]
-    #     CONSTRUCTOR_KEYWORD_ARGS={},
-    #     FIT_POSITIONAL_ARGS=[],
-    #     FIT_KEYWORD_ARGS={},
-    #     EARLYSTOPPING_KEYWORD_ARGS={},
-    # )
-    #
-    # recommender_input_args_last_test = SearchInputRecommenderArgs(
-    #     CONSTRUCTOR_POSITIONAL_ARGS=[URM_train_validation],
-    #     # For a CBF model simply put [URM_train_validation, ICM_train]
-    #     CONSTRUCTOR_KEYWORD_ARGS={},
-    #     FIT_POSITIONAL_ARGS=[],
-    #     FIT_KEYWORD_ARGS={},
-    #     EARLYSTOPPING_KEYWORD_ARGS={},
-    # )
-    # #
-    # hyperparameterSearch.search(recommender_input_args,
-    #                             recommender_input_args_last_test=recommender_input_args_last_test,
-    #                             hyperparameter_search_space=hyperparameters_range_dictionary,
-    #                             n_cases=n_cases,
-    #                             n_random_starts=n_random_starts,
-    #                             save_model="best",
-    #                             output_folder_path='../trained_models/',  # Where to save the results
-    #                             output_file_name_root=recommender_class.RECOMMENDER_NAME,  # How to call the files
-    #                             metric_to_optimize=metric_to_optimize,
-    #                             cutoff_to_optimize=cutoff_to_optimize,
-    #                             resume_from_saved=True,
-    #                             )
+    hyperparameterSearch.search(recommender_input_args,
+                                recommender_input_args_last_test=recommender_input_args_last_test,
+                                hyperparameter_search_space=hyperparameters_range_dictionary,
+                                n_cases=n_cases,
+                                n_random_starts=n_random_starts,
+                                save_model="best",
+                                output_folder_path='../trained_models/',  # Where to save the results
+                                output_file_name_root=recommender_class.RECOMMENDER_NAME,  # How to call the files
+                                metric_to_optimize=metric_to_optimize,
+                                cutoff_to_optimize=cutoff_to_optimize,
+                                resume_from_saved=True,
+                                )
 
     runHyperparameterSearch_Collaborative(recommender_class,
                                           URM_train=URM_train,

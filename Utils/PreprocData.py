@@ -62,7 +62,6 @@ def _preprocess_df(urm, length, type):
 	for user in tqdm(unique_users):
 
 		item_list = urm.loc[urm['user_id'] == user, ['item_id', 'data']]
-		# item_list = urm.query('user_id == @user')
 
 		unique_items = item_list.item_id.unique()
 
@@ -78,10 +77,9 @@ def _preprocess_df(urm, length, type):
 			df.append([user, item, score])
 
 	return pd.DataFrame(df, columns=['user_id', 'item_id', 'data'])
-# URM_df = _preprocess_df(URM, ICM_length, ICM_type)
 
 
-urm = pd.read_csv(filepath_or_buffer='../data/interactions_and_impressions.csv',
+urm = pd.read_csv(filepath_or_buffer='../data/original_data/interactions_and_impressions.csv',
 				  dtype={0: int, 1: int, 2: str, 3: int}, engine='python')
 urm.rename(columns={urm.columns[0]: 'user_id',
 					urm.columns[1]: 'item_id',
@@ -90,29 +88,13 @@ urm.rename(columns={urm.columns[0]: 'user_id',
 		   inplace=True)
 urm['impressions'] = urm['impressions'].replace([np.nan], '0')
 
-ICM_length_path = '../data/Complete_ICM_length.csv'
-ICM_type_path = '../data/data_ICM_type.csv'
+ICM_length_path = '../data/other_stuff/Complete_ICM_length.csv'
+ICM_type_path = '../data/original_data/data_ICM_type.csv'
 ICM_type = pd.read_csv(filepath_or_buffer=ICM_type_path, engine='python')
 ICM_length = pd.read_csv(filepath_or_buffer=ICM_length_path, engine='python')
 
-# URM = _preprocess_data(URM)
 
 print('Start prep')
 URM_df = _preprocess_df(urm, ICM_length, ICM_type)
-# URM_df = URM.apply(prep(ICM_length, URM))
 
 URM_df.to_csv('../dataframe11.csv', index=False)
-
-# Fast as hell method
-
-import numpy as np
-import pandas as pd
-
-urm = pd.read_csv(filepath_or_buffer='../data/Mastro_df.csv', engine='python')
-
-w_0 = 0.2
-w_1 = 0.8
-
-scores = ((urm.n_0 / urm.ep_tot) * urm.n_0 * w_0 + ((urm.avg_watched_ep / urm.ep_tot) * w_1 * urm.n_1))
-
-urm['score'] = scores
